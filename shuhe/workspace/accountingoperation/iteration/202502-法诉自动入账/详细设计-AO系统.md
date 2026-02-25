@@ -1123,6 +1123,47 @@ classDiagram
         +unlockOrder(String orderNo) void
         +executeReserveRepayAsync(String reserveId) void
         +matchFlowAndRepay(String reserveId) RepayResult
+        +buildLitigationExtInfo(String bizSerial, String orderNo) Map~String,Object~
+    }
+
+    class RepayEngineClient {
+        +submitRepay(RepayRequest) RepayResult
+        +queryResult(String reserveId) RepayResult
+    }
+
+    class RepayRequest {
+        -String reserveId
+        -String orderNo
+        -Map~String,Object~ extInfo
+        +setExtInfo(String key, Object value) void
+        +getExtInfo() Map~String,Object~
+        +getLitigationFlag() Boolean
+    }
+
+    class FeeCalculatorClient {
+        +trialCalculate(FeecalculatorTrialRequest) TrialResult
+    }
+
+    class FeecalculatorTrialRequest {
+        -String orderNo
+        -Integer repayAmount
+        -Boolean litigationFlag
+        -String litigationBizSerial
+        +setLitigationFlag(Boolean) void
+        +setLitigationBizSerial(String) void
+    }
+
+    class LoanCoreClient {
+        +accounting(LoancoreAccountRequest) AccountResult
+    }
+
+    class LoancoreAccountRequest {
+        -String orderNo
+        -Integer repayAmount
+        -Boolean litigationFlag
+        -String litigationBizSerial
+        +setLitigationFlag(Boolean) void
+        +setLitigationBizSerial(String) void
     }
 
     class ResultNotificationService {
@@ -1248,8 +1289,10 @@ sequenceDiagram
             LCClient-->>RR: 解锁完成
             deactivate LCClient
             RR->>RR: 匹配银行流水
-            RR->>RE: 提交RE还款
+            Note right of RR: 构建法诉还款请求<br/>extInfo中添加法诉标识
+            RR->>RE: 提交RE还款(带法诉标识)
             activate RE
+            Note right of RE: 试算时透传法诉标识<br/>用于识别法诉自动入账场景
             RE-->>RR: 还款结果
             deactivate RE
             RR->>RR: 更新预约状态
@@ -1283,7 +1326,34 @@ sequenceDiagram
 2. **调账减免**：对需减免订单逐个调账，记录成功/失败
 3. **账损挂账**：对有账损的订单批量生成账损挂账流水
 4. **预约还款**：对仍需还款的订单发起预约还款
+   - 构建还款请求时，在扩展字段（extInfo）中添加法诉自动入账标识
+   - 提交RE还款时，该标识会在试算阶段透传给repayengine
+   - repayengine根据法诉标识识别法诉自动入账场景，进行相应处理
 5. **结果通知**：汇总所有子流程结果，发送MQ通知
+
+**法诉标识传递说明**：
+> **关键设计**：预约还款提交RE还款时，必须传递法诉自动入账标识
+>
+> **标识传递路径**：
+> 1. AO系统构建RepayRequest时，调用`buildLitigationExtInfo(bizSerial)`方法
+> 2. 在extInfo中添加：`litigationFlag=true`，`litigationBizSerial={业务流水号}`
+> 3. RepayEngineClient.submitRepay()时携带extInfo
+> 4. repayengine在试算阶段接收extInfo，识别法诉场景
+> 5. repayengine根据法诉标识进行特殊处理（如跳过某些校验、使用特殊规则等）
+>
+> **extInfo结构示例**：
+> ```json
+> {
+>   "litigationFlag": true,
+>   "litigationBizSerial": "LRR202502250001",
+>   "litigationOrderNo": "O001"
+> }
+> ```
+>
+> **联调要点**：
+> - 需与repayengine确认extInfo的接收和解析逻辑
+> - 确认试算阶段法诉标识的正确传递和使用
+> - 验证repayengine对法诉场景的特殊处理逻辑
 
 **执行策略**：
 > **步骤级别**：严格串行执行
@@ -1308,6 +1378,195 @@ sequenceDiagram
 - 调账和还款可能部分失败，需记录详细失败原因
 - 最终状态可能是：全部成功、部分成功、全部失败
 - 订单级并发处理需注意线程安全和事务隔离
+
+#### 法诉标识传递设计
+
+**设计背景**：预约还款流程调用repayengine时，需要标识法诉自动入账场景。repayengine使用该标识：
+1. **试算阶段**：透传给feecalculator，告诉feecalculator要做法诉入账试算
+2. **核心入账阶段**：透传给loancore，告诉loancore要支持法诉入账
+
+**标识传递全链路**：
+
+```mermaid
+flowchart TD
+    AO[AO系统] --> Build[构建RepayRequest]
+    Build --> Add[添加法诉标识到extInfo]
+    Add --> RE[RepayEngine.submitRepay]
+
+    RE --> Trial{试算阶段}
+    Trial --> Check{检查法诉标识}
+    Check -->|litigationFlag=true| FC[调用feecalculator]
+    FC --> FCExt[透传法诉标识]
+    FCExt --> FCTrial[feecalculator法诉入账试算]
+    FCTrial --> TrialResult[返回试算结果]
+
+    Trial -->|试算通过| Core{核心入账阶段}
+    Core --> LC[调用loancore]
+    LC --> LCExt[透传法诉标识]
+    LCExt --> LCAccount[loancore法诉入账处理]
+    LCAccount --> AccountResult[返回入账结果]
+
+    Check -->|非法诉| Normal[正常处理逻辑]
+    TrialResult --> Return[返回最终结果]
+    AccountResult --> Return
+
+    style FC fill:#E1F5FE
+    style LC fill:#C8E6C9
+    style FCTrial fill:#FFF9C4
+    style LCAccount fill:#FFF9C4
+    style Add fill:#FFE0B2
+```
+
+**extInfo字段结构**：
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| litigationFlag | Boolean | 法诉标识，固定值true |
+| litigationBizSerial | String | 法诉业务流水号（bizSerial） |
+| litigationOrderNo | String | 法诉订单号 |
+
+**extInfo样例**：
+```json
+{
+  "litigationFlag": true,
+  "litigationBizSerial": "LRR202502250001",
+  "litigationOrderNo": "O001"
+}
+```
+
+**关键方法说明**：
+
+**ReserveRepayProcessService.buildLitigationExtInfo()**
+```java
+/**
+ * 构建法诉还款扩展信息
+ * @param bizSerial 法诉业务流水号
+ * @param orderNo 订单号
+ * @return 扩展信息Map
+ */
+private Map<String, Object> buildLitigationExtInfo(String bizSerial, String orderNo) {
+    Map<String, Object> extInfo = new HashMap<>();
+    extInfo.put("litigationFlag", true);
+    extInfo.put("litigationBizSerial", bizSerial);
+    extInfo.put("litigationOrderNo", orderNo);
+    return extInfo;
+}
+```
+
+**调用流程**：
+```java
+// 1. 构建RepayRequest
+RepayRequest request = new RepayRequest();
+request.setReserveId(reserveId);
+request.setOrderNo(orderNo);
+
+// 2. 添加法诉标识到扩展字段
+Map<String, Object> extInfo = buildLitigationExtInfo(bizSerial, orderNo);
+request.setExtInfo(extInfo);
+
+// 3. 调用repayengine提交还款
+RepayResult result = repayEngineClient.submitRepay(request);
+```
+
+**repayengine处理说明**：
+
+##### 1. 试算阶段（透传给feecalculator）
+
+**处理流程**：
+1. repayengine从RepayRequest的extInfo中获取`litigationFlag`标识
+2. 识别为法诉自动入账场景后，调用feecalculator试算接口
+3. 将法诉标识透传给feecalculator
+
+**透传给feecalculator的参数结构**：
+```java
+// feecalculator试算请求
+FeecalculatorTrialRequest fcRequest = new FeecalculatorTrialRequest();
+fcRequest.setOrderNo(orderNo);
+fcRequest.setRepayAmount(repayAmount);
+
+// 透传法诉标识
+if (Boolean.TRUE.equals(extInfo.get("litigationFlag"))) {
+    fcRequest.setLitigationFlag(true);
+    fcRequest.setLitigationBizSerial((String) extInfo.get("litigationBizSerial"));
+}
+```
+
+**feecalculator法诉试算处理**：
+- 根据`litigationFlag=true`识别法诉入账场景
+- 使用法诉入账的试算规则（区别于普通还款）
+- 返回法诉场景下的试算结果
+
+##### 2. 核心入账阶段（透传给loancore）
+
+**处理流程**：
+1. 试算通过后，repayengine发起核心入账
+2. 调用loancore入账接口时，透传法诉标识
+3. loancore根据法诉标识进行特殊处理
+
+**透传给loancore的参数结构**：
+```java
+// loancore入账请求
+LoancoreAccountRequest lcRequest = new LoancoreAccountRequest();
+lcRequest.setOrderNo(orderNo);
+lcRequest.setRepayAmount(repayAmount);
+lcRequest.setTrialResult(trialResult);
+
+// 透传法诉标识
+if (Boolean.TRUE.equals(extInfo.get("litigationFlag"))) {
+    lcRequest.setLitigationFlag(true);
+    lcRequest.setLitigationBizSerial((String) extInfo.get("litigationBizSerial"));
+}
+```
+
+**loancore法诉入账处理**：
+- 根据`litigationFlag=true`识别法诉入账场景
+- 支持法诉入账的特殊账务处理逻辑
+- 返回法诉场景下的入账结果
+
+**时序图（完整链路）**：
+
+```mermaid
+sequenceDiagram
+    participant AO as AO系统
+    participant RE as RepayEngine
+    participant FC as FeeCalculator
+    participant LC as LoanCore
+
+    AO->>RE: submitRepay(RepayRequest)<br/>extInfo包含litigationFlag=true
+
+    Note over RE,FC: === 试算阶段 ===
+    RE->>RE: 检查extInfo中的litigationFlag
+    RE->>FC: trialCalculate(fcRequest)<br/>透传litigationFlag=true
+    activate FC
+    Note right of FC: 识别法诉场景<br/>执行法诉入账试算
+    FC-->>RE: TrialResult
+    deactivate FC
+
+    Note over RE,LC: === 核心入账阶段 ===
+    RE->>LC: accounting(lcRequest)<br/>透传litigationFlag=true
+    activate LC
+    Note right of LC: 支持法诉入账处理<br/>执行特殊账务逻辑
+    LC-->>RE: AccountResult
+    deactivate LC
+
+    RE-->>AO: RepayResult
+```
+
+**联调要点**：
+
+| 联调系统 | 联调内容 | 验证点 |
+|---------|---------|--------|
+| repayengine | extInfo接收和解析逻辑 | 确认能正确获取litigationFlag |
+| repayengine | feecalculator试算调用 | 确认法诉标识正确透传 |
+| feecalculator | 法诉入账试算 | 确认根据标识使用法诉试算规则 |
+| repayengine | loancore入账调用 | 确认法诉标识正确透传 |
+| loancore | 法诉入账支持 | 确认支持法诉入账的特殊处理 |
+
+**测试场景**：
+1. 法诉标识正常传递，feecalculator试算正确
+2. 法诉标识正常传递，loancore入账成功
+3. 法诉标识缺失或为false，走正常流程
+4. 端到端测试：完整法诉自动入账流程
 
 ---
 
