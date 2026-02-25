@@ -1,0 +1,238 @@
+{
+  "main": {
+    "id": "718905099d7c44d5",
+    "type": "split",
+    "children": [
+      {
+        "id": "8e26dee41193ebd3",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "dc7659c4627d2a1e",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "详细设计-AO系统"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "22880ca5def6c25a",
+    "type": "split",
+    "children": [
+      {
+        "id": "ce739ba592f6ddbd",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "d7b8faf252aacae5",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "5cc31122c37da5af",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "26a413cc6e670ab9",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 373.5
+  },
+  "right": {
+    "id": "c9869aff101e6a98",
+    "type": "split",
+    "children": [
+      {
+        "id": "5c68d28e92d83904",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "e6f823604f3fec4c",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "shuhe/workspace/accountingoperation/base/06-核心流程详情/account-adjust-work-order-flow.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "account-adjust-work-order-flow 的反向链接列表"
+            }
+          },
+          {
+            "id": "f565a6cdd82f2c8d",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "shuhe/workspace/accountingoperation/base/06-核心流程详情/account-adjust-work-order-flow.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "account-adjust-work-order-flow 的出链列表"
+            }
+          },
+          {
+            "id": "a7627c9889bd058c",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "6d00ee2d9595324c",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "ecd2192e1702cf10",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/原始需求.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "原始需求 的大纲"
+            }
+          },
+          {
+            "id": "9e675fdb558b4d6a",
+            "type": "leaf",
+            "state": {
+              "type": "claudian-view",
+              "state": {},
+              "icon": "bot",
+              "title": "Claudian"
+            }
+          }
+        ],
+        "currentTab": 5
+      }
+    ],
+    "direction": "horizontal",
+    "width": 700.5
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "graph:查看关系图谱": false,
+      "canvas:新建白板": false,
+      "daily-notes:打开/创建今天的日记": false,
+      "templates:插入模板": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false,
+      "markdown-importer:打开 Markdown 格式转换器": false,
+      "claudian:Open Claudian": false,
+      "github-sync:Sync with Remote": false
+    }
+  },
+  "active": "dc7659c4627d2a1e",
+  "lastOpenFiles": [
+    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
+    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/功能模块清单.md",
+    "shuhe/workspace/后端设计模版-详设V1.2.md",
+    "workspace",
+    "Claude Code 操作指南.md",
+    "shuhe/workspace/accountingoperation/iteration/TEMPLATE.md",
+    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/原始需求.md",
+    "shuhe/workspace/文档规范.md",
+    "shuhe/workspace/accountingoperation/base/06-核心流程详情/account-adjust-work-order-flow.md",
+    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账",
+    "shuhe/workspace/accountingoperation/base/06-核心流程索引.md",
+    "shuhe/workspace/accountingoperation/base/06-核心流程详情",
+    "shuhe/workspace/accountingoperation/base/05-业务流索引.md",
+    "shuhe/workspace/accountingoperation/base/03-接口流程详情/customer-account-adjust-work-order-flow.md",
+    "shuhe/workspace/accountingoperation/base/03-接口流程详情/account-adjust-startWorkOrder.md",
+    "shuhe/workspace/accountingoperation/base/04-调度任务索引.md",
+    "shuhe/workspace/accountingoperation/base/04-调度任务详情/handleOfflineReserveRepayProcessJob.md",
+    "shuhe/workspace/accountingoperation/base/04-调度任务详情/chargeOffReconciliationJob.md",
+    "shuhe/workspace/accountingoperation/base/04-调度任务详情/manualDeductBatchDealJob.md",
+    "shuhe/workspace/accountingoperation/base/04-调度任务详情/refundResultSyncJob.md",
+    "shuhe/workspace/accountingoperation/base/04-调度任务详情/syncReserveInfoFromLoanJob.md",
+    "shuhe/workspace/accountingoperation/base/04-调度任务详情/matchOfflineReserveRepayInfoJob.md",
+    "shuhe/workspace/accountingoperation/base/04-调度任务详情",
+    "shuhe/workspace/accountingoperation/base/03-接口流程索引.md",
+    "shuhe/workspace/accountingoperation/base/03-接口流程-法诉自动入账.md",
+    "shuhe/workspace/accountingoperation/base/03-接口流程详情/offline-repay-提交工单.md",
+    "shuhe/workspace/accountingoperation/base/03-接口流程详情/litigation-auto-income-订单预校验.md",
+    "shuhe/workspace/accountingoperation/base/05-业务流详情/enjoyManualDeductionTrail.md",
+    "shuhe/workspace/accountingoperation/base/03-接口流程详情",
+    "shuhe/workspace/accountingoperation/base/05-业务流详情/manualDeductSubmitFlow.md",
+    "shuhe/workspace/accountingoperation/base/05-业务流详情/enjoyManualDeductSubmit.md",
+    "shuhe/workspace/accountingoperation/base/05-业务流详情",
+    "jobs",
+    "shuhe/workspace/accountingoperation/iteration",
+    "shuhe/workspace/accountingoperation/base",
+    "accountingoperation-link/accountingoperation-common/src/main/java/cn/caijiajia/accountingoperation/common/resp/offlinerepay/enjoy/EnjoyOfflineRepayTrialResp.java"
+  ]
+}

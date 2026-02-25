@@ -1,0 +1,19 @@
+{
+  "id": "conv-1772006063342-b9pbhh95j",
+  "title": "Fetch wiki page and save backend design template",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772006063343,
+  "updatedAt": 1772006117686,
+  "lastResponseAt": 1772006117686,
+  "sessionId": "3d4706a2-37f6-48a2-87a9-780a0095c733",
+  "sdkSessionId": "3d4706a2-37f6-48a2-87a9-780a0095c733",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

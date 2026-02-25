@@ -1,0 +1,19 @@
+{
+  "id": "conv-1772004806388-v4fgfyqo5",
+  "title": "Organize legal litigation auto-posting modules",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772004806388,
+  "updatedAt": 1772005888987,
+  "lastResponseAt": 1772005265643,
+  "sessionId": "d5e784eb-d83f-46f4-8a29-e120e811b218",
+  "sdkSessionId": "d5e784eb-d83f-46f4-8a29-e120e811b218",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}
