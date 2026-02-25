@@ -70,20 +70,23 @@
 
 ```mermaid
 classDiagram
-    class BankFlowQueryController {
+    class LitigationController {
         +queryBankFlowInfo(QueryBankFlowReq) QueryBankFlowResp
+        +preCheck(PreCheckReq) PreCheckResp
+        +submitRepay(SubmitRepayReq) SubmitRepayResp
+        +repayResult(RepayResultReq) RepayResultResp
     }
 
     class BankFlowQueryService {
         +queryFlow(String flowNo) BankFlowInfo
-        +queryChargedAmount(String flowNo) BigDecimal
+        +queryChargedAmount(String flowNo) Integer
     }
 
     class BankFlowInfo {
         -String flowNo
         -String bankAccount
-        -BigDecimal totalAmount
-        -BigDecimal availableAmount
+        -Integer totalAmount
+        -Integer availableAmount
         -Date transactionTime
     }
 
@@ -91,16 +94,16 @@ classDiagram
         -Long id
         -String bankFlowNo
         -String orderNo
-        -BigDecimal chargeAmount
+        -Integer chargeAmount
         -String status
     }
 
     class BankFlowRepository {
         +findByFlowNo(String flowNo) BankFlowInfo
-        +findChargedAmountByFlowNo(String flowNo) BigDecimal
+        +findChargedAmountByFlowNo(String flowNo) Integer
     }
 
-    BankFlowQueryController --> BankFlowQueryService
+    LitigationController --> BankFlowQueryService
     BankFlowQueryService --> BankFlowRepository
     BankFlowQueryService --> BankFlowInfo
     BankFlowQueryService --> ChargeUpTransLog
@@ -110,7 +113,7 @@ classDiagram
 
 | 类名 | 作用说明 | 设计模式 |
 |------|----------|----------|
-| BankFlowQueryController | 对外暴露的查询接口控制器，接收Themis系统的查询请求 | MVC模式 |
+| LitigationController | 法诉接口控制器，统一管理流水查询、预校验、提交还款接口 | MVC模式 |
 | BankFlowQueryService | 流水查询核心服务，整合流水信息和已挂账金额查询 | 服务层模式 |
 | BankFlowInfo | 银行流水信息实体，封装流水基本数据 | 值对象模式 |
 | ChargeUpTransLog | 挂账日志实体（复用现有表），记录挂账流水历史 | 实体模式 |
@@ -123,7 +126,7 @@ classDiagram
 ```mermaid
 sequenceDiagram
     participant T as Themis系统
-    participant C as BankFlowQueryController
+    participant C as LitigationController
     participant S as BankFlowQueryService
     participant R as BankFlowRepository
     participant DB as 数据库
@@ -174,7 +177,9 @@ sequenceDiagram
 
 #### AO系统-流水查询接口
 
-**接口路径**：`POST /api/ao/litigation/queryBankFlowInfo`
+**接口路径**：`POST /accountingoperation/litigationAutoIncome/queryBankFlow`
+
+**接口版本**：V0.3
 
 **接口描述**：查询银行流水信息及已挂账金额
 
@@ -185,7 +190,6 @@ sequenceDiagram
 | 参数名 | 类型 | 长度 | 必输 | 说明 |
 |--------|------|------|------|------|
 | Content-Type | String | - | Y | application/json |
-| X-Request-Id | String | 64 | Y | 请求追踪ID |
 
 **Query参数**：无
 
@@ -193,14 +197,16 @@ sequenceDiagram
 
 **Request Body参数**：
 
-| 参数名 | 类型 | 长度 | 必输 | 说明 |
-|--------|------|------|------|------|
-| bankFlowNo | String | 64 | Y | 银行流水号 |
+| 参数名 | 类型 | 必输 | 说明 |
+|--------|------|------|------|
+| receiveCardNo | String | Y | 收款卡号 |
+| bankSerials | String[] | Y | 银行收款流水号数组 |
 
 **Request Body样例**：
 ```json
 {
-  "bankFlowNo": "BF202502250001"
+  "receiveCardNo": "6222021234567890",
+  "bankSerials": ["BF202502250001", "BF202502250002"]
 }
 ```
 
@@ -208,44 +214,51 @@ sequenceDiagram
 
 | 参数名 | 类型 | 必输 | 说明 |
 |--------|------|------|------|
-| code | String | Y | 响应码，000000表示成功 |
+| code | Integer | Y | 响应码 |
 | message | String | Y | 响应消息 |
-| data | Object | Y | 响应数据 |
-| data.flowNo | String | Y | 银行流水号 |
-| data.bankAccount | String | Y | 收款银行账户 |
-| data.totalAmount | BigDecimal | Y | 流水总金额 |
-| data.chargedAmount | BigDecimal | Y | 已挂账金额 |
-| data.availableAmount | BigDecimal | Y | 可用余额（总额-已挂账） |
-| data.transactionTime | String | Y | 交易时间（yyyy-MM-dd HH:mm:ss） |
-| data.chargeDetails | List | Y | 挂账明细列表 |
-| data.chargeDetails[].orderNo | String | Y | 订单号 |
-| data.chargeDetails[].chargeAmount | BigDecimal | Y | 挂账金额 |
+| bankFlowList | Object[] | Y | 银行流水列表 |
+| bankFlowList[].bankSerial | String | Y | 银行流水号 |
+| bankFlowList[].bankName | String | Y | 银行名称 |
+| bankFlowList[].transDate | String | Y | 交易日期 |
+| bankFlowList[].transTime | String | Y | 交易时间 |
+| bankFlowList[].transAmount | Integer | Y | 交易金额（单位：分） |
+| bankFlowList[].paymentAccount | String | Y | 付款账号 |
+| bankFlowList[].paymentName | String | Y | 付款人名称 |
+| bankFlowList[].receiptCardNo | String | Y | 收款卡号 |
+| bankFlowList[].channel | String | Y | 渠道 |
+| bankFlowList[].availableAmount | Integer | Y | 可用金额（单位：分） |
+| bankFlowList[].usedAmount | Integer | Y | 已用金额（单位：分） |
+| bankFlowList[].createdAt | String | Y | 创建时间 |
+| bankFlowList[].updatedAt | String | Y | 更新时间 |
 
 **Response Body样例**：
 ```json
 {
-  "code": "000000",
+  "code": 0,
   "message": "success",
-  "data": {
-    "flowNo": "BF202502250001",
-    "bankAccount": "6222021234567890",
-    "totalAmount": 100000.00,
-    "chargedAmount": 20000.00,
-    "availableAmount": 80000.00,
-    "transactionTime": "2025-02-25 10:30:00",
-    "chargeDetails": [
-      {
-        "orderNo": "O001",
-        "chargeAmount": 20000.00
-      }
-    ]
-  }
+  "bankFlowList": [
+    {
+      "bankSerial": "BF202502250001",
+      "bankName": "工商银行",
+      "transDate": "2025-02-25",
+      "transTime": "10:30:00",
+      "transAmount": 1000000,
+      "paymentAccount": "6222012345678901",
+      "paymentName": "张三",
+      "receiptCardNo": "6222021234567890",
+      "channel": "ONLINE",
+      "availableAmount": 800000,
+      "usedAmount": 200000,
+      "createdAt": "2025-02-25T10:30:00",
+      "updatedAt": "2025-02-25T10:30:00"
+    }
+  ]
 }
 ```
 
 **接口评估**：
 
-- **预估最高QPS**：100 QPS，无大的请求/响应Body
+- **预估最高QPS**：100 QPS，中等RequestBody
 - **熔断和限流设计**：
   - 使用Sentinel进行接口限流，QPS阈值设为150
   - 降级方案：当查询超时或失败时，返回错误提示，不影响业务主流程
@@ -262,14 +275,58 @@ sequenceDiagram
 
 ### 功能设计
 
+预校验模块负责对法诉自动入账进行全面的前置校验，包含四大类校验：基础校验、订单维度校验、金额校验、规则校验，最终计算各订单账损金额。
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   预校验执行策略                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  校验步骤级别（串行）:                                       │
+│  ┌────────┐   ┌────────┐   ┌────────┐   ┌────────┐         │
+│  │基础校验 │──▶│订单校验 │──▶│金额校验 │──▶│规则校验 │         │
+│  └────────┘   └────────┘   └────────┘   └────────┘         │
+│       │                                           │         │
+│       ▼                                           ▼         │
+│  ┌────────┐   ┌────────┐                              │
+│  │账损计算 │   │返回结果 │                              │
+│  └────────┘   └────────┘                              │
+│                                                             │
+│  订单级别（并发）:                                           │
+│  ┌────────┐                                                │
+│  │订单校验 │  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐             │
+│  │        │  │01│ │02│ │03│ │...│ │49│ │50│             │
+│  │        │  └──┘ └──┘ └──┘ └──┘ └──┘ └──┘  (线程池)   │
+│  └────────┘                                                │
+│                                                             │
+│  ┌────────┐                                                │
+│  │调账试算 │  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐                   │
+│  │        │  │01│ │02│ │03│ │...│ │30│                   │
+│  │        │  └──┘ └──┘ └──┘ └──┘ └──┘  (线程池)         │
+│  └────────┘                                                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+> **执行策略**：
+> - **校验步骤级别**：严格串行执行
+>   - 基础校验 → 订单校验 → 金额校验 → 规则校验 → 账损计算
+> - **订单级别**：多线程并发处理
+>   - 每个校验步骤内部可使用线程池并发处理多个订单
+>   - 例如：订单校验有50个订单，可启动10个线程并发校验
+>   - 例如：调账试算有30个订单，可启动5个线程并发调用feecalculator
+
 #### 类图
 
 ##### 各功能核心类图
 
 ```mermaid
 classDiagram
-    class LitigationPreCheckController {
+    class LitigationController {
+        +queryBankFlowInfo(QueryBankFlowReq) QueryBankFlowResp
         +preCheck(PreCheckReq) PreCheckResp
+        +submitRepay(SubmitRepayReq) SubmitRepayResp
+        +repayResult(RepayResultReq) RepayResultResp
     }
 
     class LitigationPreCheckService {
@@ -288,12 +345,12 @@ classDiagram
     }
 
     class AmountCalculator {
-        +calculateAdjustableAmount(String orderNo) BigDecimal
-        +calculateLossAmount(BigDecimal total, BigDecimal adjust, BigDecimal repay) BigDecimal
+        +calculateAdjustableAmount(String orderNo) Integer
+        +calculateLossAmount(Integer total, Integer adjust, Integer repay) Integer
     }
 
     class FeeCalculatorClient {
-        +trialAdjust(String orderNo, BigDecimal amount) BigDecimal
+        +trialAdjust(String orderNo, Integer amount) Integer
     }
 
     class LoanCoreClient {
@@ -316,7 +373,7 @@ classDiagram
         -BigDecimal lossAmount
     }
 
-    LitigationPreCheckController --> LitigationPreCheckService
+    LitigationController --> LitigationPreCheckService
     LitigationPreCheckService --> OrderValidator
     LitigationPreCheckService --> AmountCalculator
     LitigationPreCheckService --> FeeCalculatorClient
@@ -331,7 +388,7 @@ classDiagram
 
 | 类名 | 作用说明 | 设计模式 |
 |------|----------|----------|
-| LitigationPreCheckController | 预校验接口控制器 | MVC模式 |
+| LitigationController | 法诉接口控制器，统一管理流水查询、预校验、提交还款接口 | MVC模式 |
 | LitigationPreCheckService | 预校验核心服务，编排各类校验逻辑 | 服务层模式、策略模式 |
 | OrderValidator | 订单校验器，负责订单维度的各类校验 | 验证器模式 |
 | AmountCalculator | 金额计算器，负责调账试算和账损计算 | 计算器模式 |
@@ -347,7 +404,7 @@ classDiagram
 ```mermaid
 sequenceDiagram
     participant T as Themis系统
-    participant C as LitigationPreCheckController
+    participant C as LitigationController
     participant S as LitigationPreCheckService
     participant OV as OrderValidator
     participant AC as AmountCalculator
@@ -436,18 +493,30 @@ sequenceDiagram
 4. 计算各订单账损金额
 5. 返回校验结果和账损信息
 
+**执行策略**：
+> **校验步骤级别**：严格串行执行
+> - 基础校验 → 订单校验 → 金额校验 → 规则校验 → 账损计算
+>
+> **订单级别**：多线程并发处理
+> - 每个校验步骤内部可使用线程池并发处理多个订单
+> - 例如：订单校验有50个订单，可启动10个线程并发校验
+> - 例如：调账试算有30个订单，可启动5个线程并发调用feecalculator
+
 **注意点**：
 - 所有校验项遵循"快速失败"原则，任一校验失败立即返回
 - 调账试算失败不影响校验通过，但账损金额为0
 - 校验结果需记录详细的失败原因
+- 订单级并发处理需注意外部系统（loancore、feecalculator）的调用限流
 
 ### 接口详细设计（必填）
 
 #### AO系统-预校验接口
 
-**接口路径**：`POST /api/ao/litigation/preCheck`
+**接口路径**：`POST /accountingoperation/litigationAutoIncome/preCheck`
 
 **接口描述**：法诉自动入账预校验
+
+**版本**：V0.3
 
 **【接口定义参数规范】**
 
@@ -462,14 +531,30 @@ sequenceDiagram
 
 | 参数名 | 类型 | 长度 | 必输 | 说明 |
 |--------|------|------|------|------|
-| bankFlowNo | String | 64 | Y | 银行流水号 |
-| orderNos | List<String> | 100 | Y | 订单号列表，最多100个 |
+| operator | String | 50 | Y | 操作人工号 |
+| receiveCardNo | String | 50 | Y | 收款卡号 |
+| litigationOrders | List | 100 | Y | 法诉订单列表，最多100个 |
+| litigationOrders[].bankSerial | String | 64 | Y | 银行流水号 |
+| litigationOrders[].orderNo | String | 50 | Y | 订单号 |
+| litigationOrders[].repayAmount | Integer | - | Y | 还款金额（分） |
 
 **Request Body样例**：
 ```json
 {
-  "bankFlowNo": "BF202502250001",
-  "orderNos": ["O001", "O002", "O003"]
+  "operator": "admin",
+  "receiveCardNo": "6222021234567890",
+  "litigationOrders": [
+    {
+      "bankSerial": "BF202502250001",
+      "orderNo": "O001",
+      "repayAmount": 30000
+    },
+    {
+      "bankSerial": "BF202502250001",
+      "orderNo": "O002",
+      "repayAmount": 20000
+    }
+  ]
 }
 ```
 
@@ -482,13 +567,12 @@ sequenceDiagram
 | data | Object | Y | 响应数据 |
 | data.passed | Boolean | Y | 校验是否通过 |
 | data.failReason | String | N | 失败原因（校验不通过时返回） |
-| data.failType | String | N | 失败类型：BASIC/ORDER/AMOUNT/RULE |
-| data.orderLossInfo | List | Y | 订单账损信息列表 |
-| data.orderLossInfo[].orderNo | String | Y | 订单号 |
-| data.orderLossInfo[].totalAmount | BigDecimal | Y | 应还总金额 |
-| data.orderLossInfo[].adjustableAmount | BigDecimal | Y | 可调减金额 |
-| data.orderLossInfo[].repayAmount | BigDecimal | Y | 本次还款金额 |
-| data.orderLossInfo[].lossAmount | BigDecimal | Y | 账损金额 |
+| data.orderCheckInfo | List | Y | 订单校验信息列表 |
+| data.orderCheckInfo[].orderNo | String | Y | 订单号 |
+| data.orderCheckInfo[].totalAmount | Integer | Y | 应还总金额（分） |
+| data.orderCheckInfo[].adjustableAmount | Integer | Y | 可调减金额（分） |
+| data.orderCheckInfo[].repayAmount | Integer | Y | 本次还款金额（分） |
+| data.orderCheckInfo[].lossAmount | Integer | Y | 账损金额（分） |
 
 **Response Body样例（成功）**：
 ```json
@@ -497,19 +581,19 @@ sequenceDiagram
   "message": "success",
   "data": {
     "passed": true,
-    "orderLossInfo": [
+    "orderCheckInfo": [
       {
         "orderNo": "O001",
-        "totalAmount": 50000.00,
-        "adjustableAmount": 10000.00,
-        "repayAmount": 30000.00,
-        "lossAmount": 10000.00
+        "totalAmount": 5000000,
+        "adjustableAmount": 1000000,
+        "repayAmount": 3000000,
+        "lossAmount": 1000000
       },
       {
         "orderNo": "O002",
-        "totalAmount": 20000.00,
+        "totalAmount": 2000000,
         "adjustableAmount": 0,
-        "repayAmount": 20000.00,
+        "repayAmount": 2000000,
         "lossAmount": 0
       }
     ]
@@ -525,8 +609,7 @@ sequenceDiagram
   "data": {
     "passed": false,
     "failReason": "订单O003非法诉订单",
-    "failType": "ORDER",
-    "orderLossInfo": []
+    "orderCheckInfo": []
   }
 }
 ```
@@ -556,8 +639,11 @@ sequenceDiagram
 
 ```mermaid
 classDiagram
-    class LitigationRepayController {
+    class LitigationController {
+        +queryBankFlowInfo(QueryBankFlowReq) QueryBankFlowResp
+        +preCheck(PreCheckReq) PreCheckResp
         +submitRepay(SubmitRepayReq) SubmitRepayResp
+        +repayResult(RepayResultReq) RepayResultResp
     }
 
     class LitigationRepayService {
@@ -579,7 +665,7 @@ classDiagram
     class LitigationRepayRecord {
         -String recordId
         -String bankFlowNo
-        -BigDecimal totalAmount
+        -Integer totalAmount
         -String status
         -Date createTime
     }
@@ -601,7 +687,8 @@ classDiagram
         +executeReserveRepay(String recordId) void
     }
 
-    LitigationRepayController --> LitigationRepayService
+    LitigationController --> LitigationRepayService
+    LitigationController --> LitigationPreCheckService
     LitigationRepayService --> LitigationPreCheckService
     LitigationRepayService --> LoanCoreClient
     LitigationRepayService --> LitigationRepayRecord
@@ -611,15 +698,15 @@ classDiagram
 
 ##### 各功能核心类说明
 
-| 类名 | 作用说明 | 设计模式 |
-|------|----------|----------|
-| LitigationRepayController | 提交还款接口控制器 | MVC模式 |
-| LitigationRepayService | 提交还款核心服务 | 服务层模式 |
-| LitigationPreCheckService | 复用预校验服务 | 复用模式 |
-| LoanCoreClient | loancore客户端，锁定订单账务 | 外观模式 |
-| LitigationRepayRecord | 法诉还款记录实体 | 实体模式 |
-| LitigationRepayDetail | 法诉还款详情实体 | 实体模式 |
-| AsyncProcessExecutor | 异步流程执行器 | 命令模式 |
+| 类名                        | 作用说明                        | 设计模式  |
+| ------------------------- | --------------------------- | ----- |
+| LitigationController      | 法诉接口控制器，统一管理流水查询、预校验、提交还款接口 | MVC模式 |
+| LitigationRepayService    | 提交还款核心服务                    | 服务层模式 |
+| LitigationPreCheckService | 复用预校验服务                     | 复用模式  |
+| LoanCoreClient            | loancore客户端，锁定订单账务          | 外观模式  |
+| LitigationRepayRecord     | 法诉还款记录实体                    | 实体模式  |
+| LitigationRepayDetail     | 法诉还款详情实体                    | 实体模式  |
+| AsyncProcessExecutor      | 异步流程执行器                     | 命令模式  |
 
 #### 时序图
 
@@ -628,7 +715,7 @@ classDiagram
 ```mermaid
 sequenceDiagram
     participant T as Themis系统
-    participant C as LitigationRepayController
+    participant C as LitigationController
     participant S as LitigationRepayService
     participant PS as LitigationPreCheckService
     participant LC as LoanCoreClient
@@ -641,8 +728,7 @@ sequenceDiagram
     C->>S: submit(request)
     activate S
 
-    rect rgb(240, 200, 200)
-    note right of S: 1. 再次校验
+    Note over S: 1. 再次校验
     S->>PS: executeCheck(request)
     activate PS
     PS-->>S: PreCheckResult
@@ -651,45 +737,36 @@ sequenceDiagram
     alt 校验失败
         S-->>C: 返回校验失败
         C-->>T: 提交失败响应
-        deactivate S
-        deactivate C
-    end
+    else 校验通过
+        Note over S: 2. 锁定订单账务
+        S->>LC: accountingApply(orderNos)
+        activate LC
+        LC->>LC: 锁定订单账务
+        LC-->>S: LockResult
+        deactivate LC
+
+        alt 锁定失败
+            S-->>C: 返回锁定失败
+            C-->>T: 提交失败响应
+        else 锁定成功
+            Note over S: 3. 保存还款记录
+            S->>DB: 保存LitigationRepayRecord
+            activate DB
+            S->>DB: 保存LitigationRepayDetail
+            DB-->>S: recordId
+            deactivate DB
+
+            Note over S: 4. 启动异步处理
+            S->>AE: execute(recordId)
+            activate AE
+            Note right of AE: 异步执行以下流程：<br/>1. 批量挂账<br/>2. 调账减免<br/>3. 账损挂账<br/>4. 预约还款
+
+            S-->>C: 返回处理中
+            C-->>T: 提交成功响应(状态=处理中)
+        end
     end
 
-    rect rgb(200, 240, 200)
-    note right of S: 2. 锁定订单账务
-    S->>LC: accountingApply(orderNos)
-    activate LC
-    LC->>LC: 锁定订单账务
-    LC-->>S: LockResult
-    deactivate LC
-
-    alt 锁定失败
-        S-->>C: 返回锁定失败
-        C-->>T: 提交失败响应
-        deactivate S
-        deactivate C
-    end
-    end
-
-    rect rgb(200, 200, 240)
-    note right of S: 3. 保存还款记录
-    S->>DB: 保存LitigationRepayRecord
-    S->>DB: 保存LitigationRepayDetail
-    DB-->>S: recordId
-    end
-
-    rect rgb(240, 240, 200)
-    note right of S: 4. 启动异步处理
-    S->>AE: execute(recordId)
-    activate AE
-    note right of AE: 异步执行以下流程：<br/>1. 批量挂账<br/>2. 调账减免<br/>3. 账损挂账<br/>4. 预约还款
-    end
-    end
-
-    S-->>C: 返回处理中
     deactivate S
-    C-->>T: 提交成功响应(状态=处理中)
     deactivate C
 ```
 
@@ -712,9 +789,11 @@ sequenceDiagram
 
 #### AO系统-提交还款接口
 
-**接口路径**：`POST /api/ao/litigation/submitRepay`
+**接口路径**：`POST /accountingoperation/litigationAutoIncome/submitRepay`
 
 **接口描述**：提交法诉自动入账
+
+**版本**：V0.3
 
 **【接口定义参数规范】**
 
@@ -729,27 +808,32 @@ sequenceDiagram
 
 | 参数名 | 类型 | 长度 | 必输 | 说明 |
 |--------|------|------|------|------|
-| bankFlowNo | String | 64 | Y | 银行流水号 |
-| orderList | List<Object> | 100 | Y | 订单列表 |
-| orderList[].orderNo | String | 32 | Y | 订单号 |
-| orderList[].repayAmount | BigDecimal | 18,2 | Y | 还款金额 |
-| orderList[].adjustAmount | BigDecimal | 18,2 | N | 调减金额 |
-| orderList[].lossAmount | BigDecimal | 18,2 | N | 账损金额 |
+| operator | String | 50 | Y | 操作人工号 |
+| receiveCardNo | String | 50 | Y | 收款卡号 |
+| litigationOrders | List<Object> | 100 | Y | 法诉订单列表，最多100个 |
+| litigationOrders[].bankSerial | String | 64 | Y | 银行流水号 |
+| litigationOrders[].orderNo | String | 50 | Y | 订单号 |
+| litigationOrders[].repayAmount | Integer | - | Y | 还款金额（分） |
+| litigationOrders[].adjustAmount | Integer | - | N | 调减金额（分） |
+| litigationOrders[].lossAmount | Integer | - | N | 账损金额（分） |
 
 **Request Body样例**：
 ```json
 {
-  "bankFlowNo": "BF202502250001",
-  "orderList": [
+  "operator": "admin",
+  "receiveCardNo": "6222021234567890",
+  "litigationOrders": [
     {
+      "bankSerial": "BF202502250001",
       "orderNo": "O001",
-      "repayAmount": 30000.00,
-      "adjustAmount": 10000.00,
-      "lossAmount": 10000.00
+      "repayAmount": 3000000,
+      "adjustAmount": 1000000,
+      "lossAmount": 1000000
     },
     {
+      "bankSerial": "BF202502250001",
       "orderNo": "O002",
-      "repayAmount": 20000.00,
+      "repayAmount": 2000000,
       "adjustAmount": 0,
       "lossAmount": 0
     }
@@ -803,11 +887,194 @@ sequenceDiagram
 
 ---
 
+#### AO系统-还款结果查询接口
+
+**接口路径**：`POST /accountingoperation/litigationAutoIncome/repayResult`
+
+**接口描述**：查询法诉自动入账还款结果
+
+**版本**：V0.3
+
+**【接口定义参数规范】**
+
+**Header参数**：
+
+| 参数名 | 类型 | 长度 | 必输 | 说明 |
+|--------|------|------|------|------|
+| Content-Type | String | - | Y | application/json |
+| X-Request-Id | String | 64 | Y | 请求追踪ID |
+
+**Request Body参数**：
+
+| 参数名 | 类型 | 长度 | 必输 | 说明 |
+|--------|------|------|------|------|
+| operator | String | 50 | Y | 操作人工号 |
+| recordId | String | 64 | Y | 还款记录ID |
+
+**Request Body样例**：
+```json
+{
+  "operator": "admin",
+  "recordId": "LRR202502250001"
+}
+```
+
+**Response Body参数**：
+
+| 参数名 | 类型 | 必输 | 说明 |
+|--------|------|------|------|
+| code | String | Y | 响应码，000000表示成功 |
+| message | String | Y | 响应消息 |
+| data | Object | Y | 响应数据 |
+| data.recordId | String | Y | 还款记录ID |
+| data.status | String | Y | 状态：SUCCESS-成功，FAILED-失败，PROCESSING-处理中 |
+| data.failReason | String | N | 失败原因（失败时返回） |
+| data.orderResults | List | Y | 订单结果列表 |
+| data.orderResults[].orderNo | String | Y | 订单号 |
+| data.orderResults[].status | String | Y | 订单状态：SUCCESS-成功，FAILED-失败，PROCESSING-处理中 |
+| data.orderResults[].failReason | String | N | 订单失败原因 |
+| data.orderResults[].chargeAmount | Integer | Y | 挂账金额（分） |
+| data.orderResults[].adjustAmount | Integer | Y | 调减金额（分） |
+| data.orderResults[].lossAmount | Integer | Y | 账损金额（分） |
+| data.orderResults[].repayAmount | Integer | Y | 还款金额（分） |
+
+**Response Body样例（成功）**：
+```json
+{
+  "code": "000000",
+  "message": "success",
+  "data": {
+    "recordId": "LRR202502250001",
+    "status": "SUCCESS",
+    "orderResults": [
+      {
+        "orderNo": "O001",
+        "status": "SUCCESS",
+        "chargeAmount": 1000000,
+        "adjustAmount": 1000000,
+        "lossAmount": 1000000,
+        "repayAmount": 2000000
+      },
+      {
+        "orderNo": "O002",
+        "status": "SUCCESS",
+        "chargeAmount": 0,
+        "adjustAmount": 0,
+        "lossAmount": 0,
+        "repayAmount": 2000000
+      }
+    ]
+  }
+}
+```
+
+**Response Body样例（部分失败）**：
+```json
+{
+  "code": "000000",
+  "message": "success",
+  "data": {
+    "recordId": "LRR202502250001",
+    "status": "FAILED",
+    "failReason": "部分订单处理失败，需人工介入",
+    "orderResults": [
+      {
+        "orderNo": "O001",
+        "status": "SUCCESS",
+        "chargeAmount": 1000000,
+        "adjustAmount": 1000000,
+        "lossAmount": 1000000,
+        "repayAmount": 2000000
+      },
+      {
+        "orderNo": "O002",
+        "status": "FAILED",
+        "failReason": "还款失败，银行流水不足",
+        "chargeAmount": 0,
+        "adjustAmount": 0,
+        "lossAmount": 0,
+        "repayAmount": 0
+      }
+    ]
+  }
+}
+```
+
+**Response Body样例（处理中）**：
+```json
+{
+  "code": "000000",
+  "message": "success",
+  "data": {
+    "recordId": "LRR202502250001",
+    "status": "PROCESSING",
+    "orderResults": []
+  }
+}
+```
+
+**接口评估**：
+
+- **预估最高QPS**：100 QPS，小RequestBody
+- **熔断和限流设计**：
+  - 使用Sentinel进行接口限流，QPS阈值设为150
+  - 无降级方案，仅查询数据库
+- **异常抛出**：
+  - 记录不存在返回业务错误
+  - 系统异常返回500错误
+- **接口变更影响**：
+  - 新增接口，无兼容性问题
+  - 调用链：Themis -> AO（仅查询本地数据库）
+
+---
+
 ## 「异步处理核心模块」设计
 
 ### 功能设计
 
-异步处理核心模块包含四个子流程：批量挂账、调账减免、账损挂账、预约还款。这四个子流程按顺序执行，最终汇总结果通知。
+异步处理核心模块包含四个子流程：批量挂账、调账减免、账损挂账、预约还款。
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                   异步处理执行策略                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  步骤级别（串行）:                                           │
+│  ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐  │
+│  │批量挂账  │───▶│调账减免  │───▶│账损挂账  │───▶│预约还款  │  │
+│  └─────────┘    └─────────┘    └─────────┘    └─────────┘  │
+│                                                             │
+│  订单级别（并发）:                                           │
+│  ┌─────────┐                                                │
+│  │调账减免  │  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐             │
+│  │         │  │01│ │02│ │03│ │...│ │99│ │100│            │
+│  │         │  └──┘ └──┘ └──┘ └──┘ └──┘ └──┘  (线程池)    │
+│  └─────────┘                                                │
+│                                                             │
+│  ┌─────────┐                                                │
+│  │预约还款  │  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐                   │
+│  │         │  │01│ │02│ │03│ │...│ │50│                   │
+│  │         │  └──┘ └──┘ └──┘ └──┘ └──┘  (线程池)         │
+│  └─────────┘                                                │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+> **重要约束**：这四个子流程**必须严格按顺序执行**，每个步骤完成后才能开始下一步骤。
+>
+> **执行顺序说明**：
+> 1. **批量挂账** → 先将银行流水按订单拆分挂账
+> 2. **调账减免** → 基于挂账成功后的数据进行调账
+> 3. **账损挂账** → 对扣除调账后仍有账损的订单进行账损挂账
+> 4. **预约还款** → 最后对仍需还款的订单发起预约还款
+>
+> **原因**：后续步骤依赖前序步骤的结果数据，顺序执行确保数据一致性和业务正确性。
+>
+> **并发策略**：
+> - **步骤级别**：严格串行执行（步骤1 → 步骤2 → 步骤3 → 步骤4）
+> - **订单级别**：每个步骤内部可**多线程并发**处理多个订单
+>   - 例如：调账减免步骤有100个订单，可启动10个线程并发处理
+>   - 例如：预约还款步骤有50个订单，可启动5个线程并发处理
 
 #### 类图
 
@@ -920,10 +1187,9 @@ sequenceDiagram
     participant RE as RepayEngineClient
     participant MQ as MQ消息队列
 
-    AE->>AE: execute(recordId)
+    Note over AE: 开始异步处理流程
 
-    rect rgb(200, 220, 240)
-    note right of AE: 步骤1: 批量挂账
+    Note over AE,CU: 步骤1: 批量挂账
     AE->>CU: execute(recordId)
     activate CU
     CU->>CU: 按订单拆分流水
@@ -933,84 +1199,79 @@ sequenceDiagram
     alt 挂账失败
         CU->>CU: 解冻流水
         CU->>LCClient: 解锁订单
+        activate LCClient
+        LCClient-->>CU: 解锁完成
+        deactivate LCClient
         CU-->>AE: ProcessResult(失败)
-        deactivate CU
-        AE->>RN: notify(recordId, 全部失败)
-        RN->>MQ: 发送失败通知
-        AE-->>AE: 结束流程
     else 挂账成功
         CU-->>AE: ProcessResult(成功)
-        deactivate CU
-    end
-    end
 
-    rect rgb(220, 240, 200)
-    note right of AE: 步骤2: 调账减免
-    AE->>AD: execute(recordId)
-    activate AD
+        Note over AE,AD: 步骤2: 调账减免
+        AE->>AD: execute(recordId)
+        activate AD
 
-    loop 每个需调账订单
-        AD->>AD: 调账规则校验
-        AD->>AD: 计算调账金额
-        AD->>AD: 保存调账记录
-        AD->>LCClient: 发起调账
-        LCClient-->>AD: 调账结果
-        AD->>AD: 记录结果
-    end
+        loop 每个需调账订单
+            AD->>AD: 调账规则校验
+            AD->>AD: 计算调账金额
+            AD->>AD: 保存调账记录
+            AD->>LCClient: 发起调账
+            activate LCClient
+            LCClient-->>AD: 调账结果
+            deactivate LCClient
+            AD->>AD: 记录结果
+        end
 
-    AD-->>AE: ProcessResult(部分成功)
-    deactivate AD
-    end
+        AD-->>AE: ProcessResult(部分成功)
 
-    rect rgb(240, 220, 200)
-    note right of AE: 步骤3: 账损挂账
-    AE->>LC: execute(recordId)
-    activate LC
-    LC->>LC: 筛选账损订单
+        Note over AE,LC: 步骤3: 账损挂账
+        AE->>LC: execute(recordId)
+        activate LC
+        LC->>LC: 筛选账损订单
 
-    alt 存在账损订单
-        LC->>LC: 生成账损挂账流水
-        LC->>LC: 账损批量挂账校验
-        LC->>LC: 保存挂账记录
-    end
+        alt 存在账损订单
+            LC->>LC: 生成账损挂账流水
+            LC->>LC: 账损批量挂账校验
+            LC->>LC: 保存挂账记录
+        end
 
-    LC-->>AE: ProcessResult(成功)
-    deactivate LC
-    end
+        LC-->>AE: ProcessResult(成功)
 
-    rect rgb(240, 200, 220)
-    note right of AE: 步骤4: 预约还款
-    AE->>RR: execute(recordId)
-    activate RR
+        Note over AE,RR: 步骤4: 预约还款
+        AE->>RR: execute(recordId)
+        activate RR
 
-    loop 每个待预约订单
-        RR->>RR: 预约还款校验
-        RR->>RR: 保存预约信息
-        RR->>LCClient: 解锁订单账务
-
-        par 异步执行预约还款
+        loop 每个待预约订单
+            RR->>RR: 预约还款校验
+            RR->>RR: 保存预约信息
+            RR->>LCClient: 解锁订单账务
+            activate LCClient
+            LCClient-->>RR: 解锁完成
+            deactivate LCClient
             RR->>RR: 匹配银行流水
             RR->>RE: 提交RE还款
+            activate RE
             RE-->>RR: 还款结果
+            deactivate RE
             RR->>RR: 更新预约状态
         end
+
+        RR->>RR: 查询预约还款结果
+        RR-->>AE: ProcessResult(部分成功)
+
+        Note over AE,RN: 步骤5: 结果汇总通知
+        AE->>AE: summarizeResults(results)
+        AE->>RN: notify(recordId, finalResult)
+        activate RN
+        RN->>RN: 构建通知消息
+        RN->>MQ: 发送MQ消息
+        RN-->>AE: 发送完成
     end
 
-    RR->>RR: 查询预约还款结果
-    RR-->>AE: ProcessResult(部分成功)
+    deactivate CU
+    deactivate AD
+    deactivate LC
     deactivate RR
-    end
-
-    rect rgb(220, 200, 240)
-    note right of AE: 步骤5: 结果汇总通知
-    AE->>AE: summarizeResults(results)
-    AE->>RN: notify(recordId, finalResult)
-    activate RN
-    RN->>RN: 构建通知消息
-    RN->>MQ: 发送MQ消息
-    RN-->>AE: 发送完成
     deactivate RN
-    end
 ```
 
 ##### 系统流程图说明
@@ -1024,10 +1285,29 @@ sequenceDiagram
 4. **预约还款**：对仍需还款的订单发起预约还款
 5. **结果通知**：汇总所有子流程结果，发送MQ通知
 
+**执行策略**：
+> **步骤级别**：严格串行执行
+> - 步骤1完成 → 步骤2 → 步骤3 → 步骤4 → 步骤5
+>
+> **订单级别**：多线程并发处理
+> - 每个步骤内部可使用线程池并发处理多个订单
+> - 例如：调账步骤处理100个订单，可启动10个线程并发执行
+> - 例如：预约还款步骤处理50个订单，可启动5个线程并发执行
+>
+> **依赖关系**：
+> - 步骤2（调账）依赖步骤1（挂账）的流水拆分结果
+> - 步骤3（账损）依赖步骤1和2的数据计算结果
+> - 步骤4（预约）依赖步骤1-3的处理结果才能确定待还金额
+>
+> **失败处理**：
+> - 步骤1失败：整体回滚，流程结束
+> - 步骤2-4失败：记录失败但继续执行后续步骤（部分成功）
+
 **注意点**：
 - 挂账失败会导致整个流程失败，需回滚
 - 调账和还款可能部分失败，需记录详细失败原因
 - 最终状态可能是：全部成功、部分成功、全部失败
+- 订单级并发处理需注意线程安全和事务隔离
 
 ---
 
@@ -1037,58 +1317,144 @@ sequenceDiagram
 
 #### 法诉还款结果通知消息
 
+**Exchange**：`accountingoperation.exchange.litigationRepayResult`
+
 **消息体：**
 
 | 字段名 | 类型 | 含义 |
 |--------|------|------|
-| recordId | String | 还款记录ID |
-| bankFlowNo | String | 银行流水号 |
-| finalStatus | String | 最终状态：SUCCESS/PARTIAL_SUCCESS/FAILURE |
-| totalAmount | BigDecimal | 还款总金额 |
-| successAmount | BigDecimal | 成功金额 |
-| failAmount | BigDecimal | 失败金额 |
-| chargeUpStatus | String | 挂账状态 |
-| adjustStatus | String | 调账状态 |
-| lossChargeStatus | String | 账损挂账状态 |
-| reserveRepayStatus | String | 预约还款状态 |
-| processDetails | List<Object> | 处理详情 |
-| processDetails[].orderNo | String | 订单号 |
-| processDetails[].processName | String | 处理流程名称 |
-| processDetails[].status | String | 订单处理状态 |
-| processDetails[].amount | BigDecimal | 处理金额 |
-| processDetails[].errorMsg | String | 错误信息 |
-| createTime | String | 创建时间 |
+| bizSerial | String | 请求流水号 |
+| bpmApprovalNo | String | 审批BPM单号 |
+| repayAmount | Integer | 还款提交金额（单位：分） |
+| repaySuccessAmount | Integer | 还款成功金额（单位：分） |
+| repayStatus | String | 还款状态：SUCCESS-还款成功，PART_SUCCESS-部分成功，FAILED-还款失败 |
+| errorCode | String | 错误码 |
+| errorMsg | String | 错误信息 |
+| operator | String | 操作人 |
+| orderList | List | 订单明细 |
+| orderList[].uid | String | 用户标识 |
+| orderList[].orderNo | String | 订单号 |
+| orderList[].bankSerialNo | String | 银行收款流水号 |
+| orderList[].repayAmount | Integer | 还款金额（单位：分） |
+| orderList[].settle | String | 是否结清（Y-是，N-否） |
+| orderList[].accountLoss | String | 是否账损（Y-是，N-否） |
+| orderList[].adjustAmount | Integer | 调减金额（单位：分） |
+| orderList[].accountLossAmount | Integer | 账损金额（单位：分） |
+| orderList[].accountLossRatio | BigDecimal | 贷后允许账损比例 |
+| orderList[].relatedAdjustNo | String | 关联调账业务流水号 |
+| orderList[].relatedAccountLossNo | String | 关联账损挂账流水号 |
+| orderList[].relatedPaymentSerial | String | 关联拆分挂账流水号 |
+| orderList[].relatedReserveNo | String | 关联还款预约单号 |
+| orderList[].repayStatus | String | 状态 |
+| orderList[].failStage | String | 失败环节 |
+| orderList[].errorCode | String | 错误码 |
+| orderList[].errorMsg | String | 错误信息 |
 
-**消息体样例：**
+**消息体样例（全部成功）：**
 ```json
 {
-  "recordId": "LRR202502250001",
-  "bankFlowNo": "BF202502250001",
-  "finalStatus": "PARTIAL_SUCCESS",
-  "totalAmount": 50000.00,
-  "successAmount": 30000.00,
-  "failAmount": 20000.00,
-  "chargeUpStatus": "SUCCESS",
-  "adjustStatus": "PARTIAL_SUCCESS",
-  "lossChargeStatus": "SUCCESS",
-  "reserveRepayStatus": "PARTIAL_SUCCESS",
-  "processDetails": [
+  "bizSerial": "LRR202502250001",
+  "bpmApprovalNo": "BPM202502250001",
+  "repayAmount": 5000000,
+  "repaySuccessAmount": 5000000,
+  "repayStatus": "SUCCESS",
+  "errorCode": null,
+  "errorMsg": null,
+  "operator": "admin",
+  "orderList": [
     {
+      "uid": "U001",
       "orderNo": "O001",
-      "processName": "预约还款",
-      "status": "SUCCESS",
-      "amount": 30000.00,
+      "bankSerialNo": "BF202502250001",
+      "repayAmount": 3000000,
+      "settle": "Y",
+      "accountLoss": "Y",
+      "adjustAmount": 1000000,
+      "accountLossAmount": 1000000,
+      "accountLossRatio": 0.2,
+      "relatedAdjustNo": "ADJ001",
+      "relatedAccountLossNo": "LOSS001",
+      "relatedPaymentSerial": "PAY001",
+      "relatedReserveNo": "RES001",
+      "repayStatus": "SUCCESS",
+      "failStage": null,
+      "errorCode": null,
       "errorMsg": null
     },
     {
+      "uid": "U002",
       "orderNo": "O002",
-      "processName": "预约还款",
-      "status": "FAILURE",
-      "amount": 20000.00,
+      "bankSerialNo": "BF202502250001",
+      "repayAmount": 2000000,
+      "settle": "Y",
+      "accountLoss": "N",
+      "adjustAmount": 0,
+      "accountLossAmount": 0,
+      "accountLossRatio": 0,
+      "relatedAdjustNo": null,
+      "relatedAccountLossNo": null,
+      "relatedPaymentSerial": "PAY002",
+      "relatedReserveNo": "RES002",
+      "repayStatus": "SUCCESS",
+      "failStage": null,
+      "errorCode": null,
+      "errorMsg": null
+    }
+  ]
+}
+```
+
+**消息体样例（部分失败）：**
+```json
+{
+  "bizSerial": "LRR202502250002",
+  "bpmApprovalNo": "BPM202502250002",
+  "repayAmount": 5000000,
+  "repaySuccessAmount": 3000000,
+  "repayStatus": "PART_SUCCESS",
+  "errorCode": "PARTIAL_FAILED",
+  "errorMsg": "部分订单还款失败，需人工介入",
+  "operator": "admin",
+  "orderList": [
+    {
+      "uid": "U001",
+      "orderNo": "O001",
+      "bankSerialNo": "BF202502250002",
+      "repayAmount": 3000000,
+      "settle": "Y",
+      "accountLoss": "Y",
+      "adjustAmount": 1000000,
+      "accountLossAmount": 1000000,
+      "accountLossRatio": 0.2,
+      "relatedAdjustNo": "ADJ001",
+      "relatedAccountLossNo": "LOSS001",
+      "relatedPaymentSerial": "PAY001",
+      "relatedReserveNo": "RES001",
+      "repayStatus": "SUCCESS",
+      "failStage": null,
+      "errorCode": null,
+      "errorMsg": null
+    },
+    {
+      "uid": "U002",
+      "orderNo": "O002",
+      "bankSerialNo": "BF202502250002",
+      "repayAmount": 2000000,
+      "settle": "N",
+      "accountLoss": "N",
+      "adjustAmount": 0,
+      "accountLossAmount": 0,
+      "accountLossRatio": 0,
+      "relatedAdjustNo": null,
+      "relatedAccountLossNo": null,
+      "relatedPaymentSerial": "PAY002",
+      "relatedReserveNo": "RES002",
+      "repayStatus": "FAILED",
+      "failStage": "RESERVE_REPAY",
+      "errorCode": "FLOW_MATCH_FAILED",
       "errorMsg": "流水匹配失败"
     }
-  ],
-  "createTime": "2025-02-25 15:30:00"
+  ]
 }
 ```
 
@@ -1187,60 +1553,140 @@ flowchart TD
 
 **表1：法诉还款记录表（litigation_repay_record）**
 
-| 字段名 | 类型 | 长度 | 允许空 | 主键 | 说明 |
-|--------|------|------|--------|------|------|
-| id | BIGINT | - | N | Y | 主键ID |
-| record_id | VARCHAR | 64 | N | N | 还款记录ID（业务主键） |
-| bank_flow_no | VARCHAR | 64 | N | N | 银行流水号 |
-| bank_account | VARCHAR | 32 | N | N | 收款银行账户 |
-| total_amount | DECIMAL | 18,2 | N | N | 还款总金额 |
-| order_count | INT | - | N | N | 订单数量 |
-| status | VARCHAR | 32 | N | N | 状态：PROCESSING/SUCCESS/PARTIAL_SUCCESS/FAILURE/CANCELLED |
-| charge_up_status | VARCHAR | 32 | Y | N | 挂账状态 |
-| adjust_status | VARCHAR | 32 | Y | N | 调账状态 |
-| loss_charge_status | VARCHAR | 32 | Y | N | 账损挂账状态 |
-| reserve_repay_status | VARCHAR | 32 | Y | N | 预约还款状态 |
-| bpm_process_id | VARCHAR | 64 | Y | N | BPM流程ID |
-| creator | VARCHAR | 64 | N | N | 创建人 |
-| create_time | DATETIME | - | N | N | 创建时间 |
-| updater | VARCHAR | 64 | Y | N | 更新人 |
-| update_time | DATETIME | - | Y | N | 更新时间 |
+```sql
+CREATE TABLE `litigation_repay_record` (
+    `id` bigint(20) NOT NULL auto_increment COMMENT '主键ID',
+    `biz_serial` varchar(64) NOT NULL COMMENT '法诉还款业务流水号',
+    `bpm_approval_no` varchar(64) NULL COMMENT '审批BPM单号',
+    `repay_amount` int(11) NOT NULL DEFAULT '0' COMMENT '还款提交金额(单位:分)',
+    `repay_success_amount` int(11) NOT NULL DEFAULT '0' COMMENT '还款成功金额(单位:分)',
+    `create_id` varchar(64) NULL COMMENT '操作人ID',
+    `operator` varchar(128) NULL COMMENT '操作人',
+    `repay_status` varchar(32) NOT NULL COMMENT '还款状态,INIT-初始化,INIT_ABORT-工单审批未通过,PROCESSING-还款处理中,SUCCESS-还款成功,PART_SUCCESS-部分成功,FAILED-还款失败',
+    `error_code` varchar(64) NULL COMMENT '错误码',
+    `error_msg` varchar(500) NULL COMMENT '错误信息',
+    `ext_info` json NULL COMMENT '扩展信息',
+    `created_by` varchar(64) NULL COMMENT '创建人',
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_by` varchar(64) NULL COMMENT '更新人',
+    `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_biz_srl` (`biz_serial`) USING BTREE,
+    KEY `idx_bpm_no` (`bpm_approval_no`) USING BTREE,
+    KEY `idx_opr_sta` (`operator`,`repay_status`) USING BTREE,
+    KEY `idx_crt_at` (`created_at`) USING BTREE,
+    KEY `idx_upd_at` (`updated_at`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 CHARSET=utf8mb4 COMMENT='法诉还款记录表';
+```
 
-**索引设计**：
-- PRIMARY KEY (`id`)
-- UNIQUE KEY `uk_record_id` (`record_id`)
-- KEY `idx_bank_flow_no` (`bank_flow_no`)
-- KEY `idx_status` (`status`)
-- KEY `idx_create_time` (`create_time`)
+**字段说明**：
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| id | BIGINT | 主键ID，自增 |
+| biz_serial | VARCHAR(64) | 法诉还款业务流水号，业务唯一标识 |
+| bpm_approval_no | VARCHAR(64) | 审批BPM单号 |
+| repay_amount | INT | 还款提交金额（单位：分） |
+| repay_success_amount | INT | 还款成功金额（单位：分） |
+| create_id | VARCHAR(64) | 操作人ID |
+| operator | VARCHAR(128) | 操作人 |
+| repay_status | VARCHAR(32) | 还款状态：INIT-初始化，INIT_ABORT-工单审批未通过，PROCESSING-还款处理中，SUCCESS-还款成功，PART_SUCCESS-部分成功，FAILED-还款失败 |
+| error_code | VARCHAR(64) | 错误码 |
+| error_msg | VARCHAR(500) | 错误信息 |
+| ext_info | JSON | 扩展信息，存储业务扩展数据 |
+| created_by | VARCHAR(64) | 创建人 |
+| created_at | DATETIME | 创建时间 |
+| updated_by | VARCHAR(64) | 更新人 |
+| updated_at | DATETIME | 更新时间 |
+
+**索引说明**：
+- `uk_biz_srl`：业务流水号唯一索引，保证业务幂等性
+- `idx_bpm_no`：BPM审批单号索引，用于关联BPM流程查询
+- `idx_opr_sta`：操作人+状态组合索引，用于查询用户操作历史
+- `idx_crt_at`：创建时间索引，用于按时间范围查询
+- `idx_upd_at`：更新时间索引，用于查询更新记录
 
 **表数据增量情况评估**：
 - 每天预计增加500-1000行数据
 
 **表2：法诉还款详情表（litigation_repay_detail）**
 
-| 字段名 | 类型 | 长度 | 允许空 | 主键 | 说明 |
-|--------|------|------|--------|------|------|
-| id | BIGINT | - | N | Y | 主键ID |
-| detail_id | VARCHAR | 64 | N | N | 详情ID（业务主键） |
-| record_id | VARCHAR | 64 | N | N | 还款记录ID |
-| order_no | VARCHAR | 32 | N | N | 订单号 |
-| repay_amount | DECIMAL | 18,2 | N | N | 还款金额 |
-| adjust_amount | DECIMAL | 18,2 | Y | N | 调减金额 |
-| loss_amount | DECIMAL | 18,2 | Y | N | 账损金额 |
-| adjust_work_no | VARCHAR | 64 | Y | N | 调账工单号 |
-| adjust_status | VARCHAR | 32 | Y | N | 调账状态 |
-| adjust_msg | VARCHAR | 512 | Y | N | 调账结果消息 |
-| reserve_id | VARCHAR | 64 | Y | N | 预约还款ID |
-| reserve_status | VARCHAR | 32 | Y | N | 预约状态 |
-| reserve_msg | VARCHAR | 512 | Y | N | 预约结果消息 |
-| create_time | DATETIME | - | N | N | 创建时间 |
-| update_time | DATETIME | - | Y | N | 更新时间 |
+```sql
+CREATE TABLE `litigation_repay_detail` (
+    `id` bigint(20) NOT NULL auto_increment COMMENT '主键ID',
+    `biz_serial` varchar(64) NOT NULL COMMENT '请求流水号',
+    `uid` varchar(64) NOT NULL COMMENT '用户标识',
+    `order_no` varchar(64) NOT NULL COMMENT '还款订单号',
+    `bank_serial_no` varchar(64) NOT NULL COMMENT '银行收款流水号',
+    `repay_amount` int(11) NULL COMMENT '还款金额(单位:分)',
+    `settle` char(1) NOT NULL COMMENT '是否结清(Y-是,N-否)',
+    `account_loss` char(1) NOT NULL COMMENT '是否账损(Y-是,N-否)',
+    `litigation_day_remain_principal` int(11) NULL COMMENT '剩余未还本金(单位:分)',
+    `adjust_amount` int(11) NULL COMMENT '调减金额(单位:分)',
+    `account_loss_amount` int(11) NULL COMMENT '账损金额(单位:分)',
+    `account_loss_ratio` decimal(10,4) NULL COMMENT '贷后允许账损比例',
+    `bpm_approval_no` varchar(64) NULL COMMENT '审批BPM单号',
+    `related_adjust_no` varchar(64) NULL COMMENT '关联调账业务流水号',
+    `related_account_loss_no` varchar(64) NULL COMMENT '关联账损挂账流水号',
+    `related_payment_serial` varchar(64) NULL COMMENT '关联拆分挂账流水号',
+    `related_reserve_no` varchar(64) NULL COMMENT '关联还款预约单号',
+    `repay_status` varchar(32) NULL COMMENT '状态',
+    `fail_stage` varchar(64) NULL COMMENT '失败环节',
+    `error_code` varchar(64) NULL COMMENT '错误码',
+    `error_msg` varchar(255) NULL COMMENT '错误信息',
+    `ext_info` json NULL COMMENT '扩展信息',
+    `created_by` varchar(64) NULL COMMENT '创建人',
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_by` varchar(64) NULL COMMENT '更新人',
+    `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_uid` (`uid`) USING BTREE,
+    KEY `idx_biz_srl` (`biz_serial`) USING BTREE,
+    KEY `idx_ord_no` (`order_no`) USING BTREE,
+    KEY `idx_crt_at` (`created_at`) USING BTREE,
+    KEY `idx_upd_at` (`updated_at`) USING BTREE,
+    KEY `idx_res_no` (`related_reserve_no`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 CHARSET=utf8mb4 COMMENT='法诉还款自动入账订单表';
+```
 
-**索引设计**：
-- PRIMARY KEY (`id`)
-- UNIQUE KEY `uk_detail_id` (`detail_id`)
-- KEY `idx_record_id` (`record_id`)
-- KEY `idx_order_no` (`order_no`)
+**字段说明**：
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| id | BIGINT | 主键ID，自增 |
+| biz_serial | VARCHAR(64) | 请求流水号，关联主表 |
+| uid | VARCHAR(64) | 用户标识 |
+| order_no | VARCHAR(64) | 还款订单号 |
+| bank_serial_no | VARCHAR(64) | 银行收款流水号 |
+| repay_amount | INT | 还款金额（单位：分） |
+| settle | CHAR(1) | 是否结清（Y-是，N-否） |
+| account_loss | CHAR(1) | 是否账损（Y-是，N-否） |
+| litigation_day_remain_principal | INT | 剩余未还本金（单位：分） |
+| adjust_amount | INT | 调减金额（单位：分） |
+| account_loss_amount | INT | 账损金额（单位：分） |
+| account_loss_ratio | DECIMAL(10,4) | 贷后允许账损比例 |
+| bpm_approval_no | VARCHAR(64) | 审批BPM单号 |
+| related_adjust_no | VARCHAR(64) | 关联调账业务流水号 |
+| related_account_loss_no | VARCHAR(64) | 关联账损挂账流水号 |
+| related_payment_serial | VARCHAR(64) | 关联拆分挂账流水号 |
+| related_reserve_no | VARCHAR(64) | 关联还款预约单号 |
+| repay_status | VARCHAR(32) | 状态：SUCCESS-成功，FAILED-失败，PROCESSING-处理中 |
+| fail_stage | VARCHAR(64) | 失败环节，记录具体在哪个阶段失败 |
+| error_code | VARCHAR(64) | 错误码 |
+| error_msg | VARCHAR(255) | 错误信息 |
+| ext_info | JSON | 扩展信息 |
+| created_by | VARCHAR(64) | 创建人 |
+| created_at | DATETIME | 创建时间 |
+| updated_by | VARCHAR(64) | 更新人 |
+| updated_at | DATETIME | 更新时间 |
+
+**索引说明**：
+- `idx_uid`：用户标识索引，用于查询用户订单
+- `idx_biz_srl`：业务流水号索引，用于关联主表查询
+- `idx_ord_no`：订单号索引，用于订单查询
+- `idx_crt_at`：创建时间索引
+- `idx_upd_at`：更新时间索引
+- `idx_res_no`：关联还款预约单号索引，用于关联预约还款表
 
 **表数据增量情况评估**：
 - 每天预计增加2000-5000行数据（一个还款记录包含多个订单）
@@ -1409,6 +1855,27 @@ flowchart TD
 
 ---
 
-*文档版本：V1.0*
+## 附录：接口汇总
+
+本章节汇总法诉自动入账功能的所有接口。
+
+| 接口路径 | 请求方法 | 接口名称 | 请求方 | 用途 | 所属模块 |
+|----------|---------|----------|--------|------|----------|
+| `/accountingoperation/litigationAutoIncome/queryBankFlow` | POST | 流水查询接口 | Themis | 查询银行流水信息及已挂账金额 | 流水查询模块 |
+| `/accountingoperation/litigationAutoIncome/preCheck` | POST | 预校验接口 | Themis | 法诉自动入账预校验 | 预校验模块 |
+| `/accountingoperation/litigationAutoIncome/submitRepay` | POST | 提交还款接口 | Themis | 提交法诉自动入账 | 提交还款模块 |
+| `/accountingoperation/litigationAutoIncome/repayResult` | POST | 还款结果查询接口 | Themis | 查询法诉自动入账还款结果 | 结果通知模块 |
+
+**接口路径前缀**：`/accountingoperation/litigationAutoIncome/`
+
+**接口版本**：V0.3
+
+**金额单位说明**：所有金额相关字段均使用"分"作为单位（Integer类型），而非"元"。
+
+---
+
+*文档版本：V1.1*
 *创建时间：2025-02-25*
+*最后更新：2025-02-25*
 *作者：Claude*
+*更新说明：根据API平台TASK-202512020003接口设计更新接口参数结构*

@@ -156,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/原始需求.md",
+                "file": "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "原始需求 的大纲"
+              "title": "详细设计-AO系统 的大纲"
             }
           },
           {
@@ -176,11 +176,12 @@
             }
           }
         ],
-        "currentTab": 5
+        "currentTab": 4
       }
     ],
     "direction": "horizontal",
-    "width": 700.5
+    "width": 700.5,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -198,13 +199,13 @@
   },
   "active": "dc7659c4627d2a1e",
   "lastOpenFiles": [
-    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
     "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/功能模块清单.md",
+    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
+    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/原始需求.md",
     "shuhe/workspace/后端设计模版-详设V1.2.md",
     "workspace",
     "Claude Code 操作指南.md",
     "shuhe/workspace/accountingoperation/iteration/TEMPLATE.md",
-    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/原始需求.md",
     "shuhe/workspace/文档规范.md",
     "shuhe/workspace/accountingoperation/base/06-核心流程详情/account-adjust-work-order-flow.md",
     "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账",
