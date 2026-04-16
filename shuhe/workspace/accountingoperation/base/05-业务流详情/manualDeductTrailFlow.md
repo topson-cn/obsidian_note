@@ -606,10 +606,10 @@ stateDiagram-v2
 
 ## 相关文档
 
-- [项目工程结构](../01-项目工程结构.md)
-- [数据库结构](../02-数据库结构.md)
-- [人工扣款提交流程](./manualDeductSubmitFlow.md)
-- [还享花试算流程](./enjoyManualDeductionTrail.md)
+- [项目工程结构](01-项目工程结构.md)
+- [数据库结构](02-数据库结构.md)
+- [人工扣款提交流程](manualDeductSubmitFlow.md)
+- [还享花试算流程](enjoyManualDeductionTrail.md)
 
 ---
 

@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772187505056-46e87cchz",
+  "title": "Add sequence diagram to overview design",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772187505066,
+  "updatedAt": 1772433318659,
+  "lastResponseAt": 1772188034239,
+  "sessionId": "5bf573d5-22c6-4f52-917d-39e02c38e687",
+  "sdkSessionId": "5bf573d5-22c6-4f52-917d-39e02c38e687",
+  "currentNote": "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

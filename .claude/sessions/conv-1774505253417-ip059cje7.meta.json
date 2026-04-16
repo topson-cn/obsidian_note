@@ -1,0 +1,20 @@
+{
+  "id": "conv-1774505253417-ip059cje7",
+  "title": "Create ODPS view for invoice query system",
+  "titleGenerationStatus": "success",
+  "createdAt": 1774505253418,
+  "updatedAt": 1774842342488,
+  "lastResponseAt": 1774507789597,
+  "sessionId": "c3706019-1f32-4e6f-ab13-45813df59ce6",
+  "sdkSessionId": "c3706019-1f32-4e6f-ab13-45813df59ce6",
+  "currentNote": "shuhe/workspace/accountingoperation/iteration/202503-开票信息查询/联合贷开票查询.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 3,
+    "cacheCreationInputTokens": 84579,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 84582,
+    "percentage": 42
+  }
+}

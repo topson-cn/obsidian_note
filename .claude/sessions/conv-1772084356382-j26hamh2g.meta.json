@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772084356382-j26hamh2g",
+  "title": "Query repay_apply API details in repayengine",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772084356383,
+  "updatedAt": 1772172539833,
+  "lastResponseAt": 1772160887440,
+  "sessionId": "7935347b-e01f-472d-81f9-e66c5595b668",
+  "sdkSessionId": "7935347b-e01f-472d-81f9-e66c5595b668",
+  "currentNote": "shuhe/0-workspace/repayengine/iteration/RE大表治理/RE大表治理-方案.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

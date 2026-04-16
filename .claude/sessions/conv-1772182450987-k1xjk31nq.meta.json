@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772182450987-k1xjk31nq",
+  "title": "Add idempotency control to repayment module",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772182450987,
+  "updatedAt": 1772182826887,
+  "lastResponseAt": 1772182586492,
+  "sessionId": "f1fedf31-880a-4fc4-9b41-deba4c0c4f63",
+  "sdkSessionId": "f1fedf31-880a-4fc4-9b41-deba4c0c4f63",
+  "currentNote": "shuhe/0-workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

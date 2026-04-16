@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "8e26dee41193ebd3",
+        "id": "1a9d86e6089d39b9",
         "type": "tabs",
         "children": [
           {
-            "id": "dc7659c4627d2a1e",
+            "id": "8a081a4cc531f934",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
+                "file": "daichao/节俭用-整体业务流程分析.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "详细设计-AO系统"
+              "title": "节俭用-整体业务流程分析"
             }
           }
         ]
@@ -78,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 373.5
+    "width": 393.5
   },
   "right": {
     "id": "c9869aff101e6a98",
@@ -94,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "shuhe/workspace/accountingoperation/base/06-核心流程详情/account-adjust-work-order-flow.md",
+                "file": "shuhe/workspace/repayengine/base/bizflow/node/PH170120.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -104,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "account-adjust-work-order-flow 的反向链接列表"
+              "title": "PH170120 的反向链接列表"
             }
           },
           {
@@ -113,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "shuhe/workspace/accountingoperation/base/06-核心流程详情/account-adjust-work-order-flow.md",
+                "file": "shuhe/workspace/repayengine/base/bizflow/node/PH170120.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "account-adjust-work-order-flow 的出链列表"
+              "title": "PH170120 的出链列表"
             }
           },
           {
@@ -156,17 +156,17 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
+                "file": "shuhe/workspace/repayengine/base/api/还款申请统一提交入口.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "详细设计-AO系统 的大纲"
+              "title": "还款申请统一提交入口 的大纲"
             }
           },
           {
-            "id": "9e675fdb558b4d6a",
+            "id": "5ef63c9d8125064a",
             "type": "leaf",
             "state": {
               "type": "claudian-view",
@@ -196,43 +196,45 @@
       "github-sync:Sync with Remote": false
     }
   },
-  "active": "dc7659c4627d2a1e",
+  "active": "8a081a4cc531f934",
   "lastOpenFiles": [
-    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/功能模块清单.md",
-    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
-    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/原始需求.md",
-    "shuhe/workspace/后端设计模版-详设V1.2.md",
-    "workspace",
-    "Claude Code 操作指南.md",
-    "shuhe/workspace/accountingoperation/iteration/TEMPLATE.md",
-    "shuhe/workspace/文档规范.md",
-    "shuhe/workspace/accountingoperation/base/06-核心流程详情/account-adjust-work-order-flow.md",
-    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账",
-    "shuhe/workspace/accountingoperation/base/06-核心流程索引.md",
-    "shuhe/workspace/accountingoperation/base/06-核心流程详情",
-    "shuhe/workspace/accountingoperation/base/05-业务流索引.md",
-    "shuhe/workspace/accountingoperation/base/03-接口流程详情/customer-account-adjust-work-order-flow.md",
-    "shuhe/workspace/accountingoperation/base/03-接口流程详情/account-adjust-startWorkOrder.md",
-    "shuhe/workspace/accountingoperation/base/04-调度任务索引.md",
-    "shuhe/workspace/accountingoperation/base/04-调度任务详情/handleOfflineReserveRepayProcessJob.md",
-    "shuhe/workspace/accountingoperation/base/04-调度任务详情/chargeOffReconciliationJob.md",
-    "shuhe/workspace/accountingoperation/base/04-调度任务详情/manualDeductBatchDealJob.md",
-    "shuhe/workspace/accountingoperation/base/04-调度任务详情/refundResultSyncJob.md",
-    "shuhe/workspace/accountingoperation/base/04-调度任务详情/syncReserveInfoFromLoanJob.md",
-    "shuhe/workspace/accountingoperation/base/04-调度任务详情/matchOfflineReserveRepayInfoJob.md",
-    "shuhe/workspace/accountingoperation/base/04-调度任务详情",
-    "shuhe/workspace/accountingoperation/base/03-接口流程索引.md",
-    "shuhe/workspace/accountingoperation/base/03-接口流程-法诉自动入账.md",
-    "shuhe/workspace/accountingoperation/base/03-接口流程详情/offline-repay-提交工单.md",
-    "shuhe/workspace/accountingoperation/base/03-接口流程详情/litigation-auto-income-订单预校验.md",
-    "shuhe/workspace/accountingoperation/base/05-业务流详情/enjoyManualDeductionTrail.md",
-    "shuhe/workspace/accountingoperation/base/03-接口流程详情",
-    "shuhe/workspace/accountingoperation/base/05-业务流详情/manualDeductSubmitFlow.md",
-    "shuhe/workspace/accountingoperation/base/05-业务流详情/enjoyManualDeductSubmit.md",
-    "shuhe/workspace/accountingoperation/base/05-业务流详情",
-    "jobs",
-    "shuhe/workspace/accountingoperation/iteration",
-    "shuhe/workspace/accountingoperation/base",
-    "accountingoperation-link/accountingoperation-common/src/main/java/cn/caijiajia/accountingoperation/common/resp/offlinerepay/enjoy/EnjoyOfflineRepayTrialResp.java"
+    "daichao/节俭用-整体业务流程分析.md",
+    "未命名.canvas",
+    "daichao/节俭用-联登撞库-业务模式分析.md",
+    "daichao/节俭用-联登撞库-接口文档.md",
+    "daichao/节俭用-全表单进件与分润-业务模式分析.md",
+    "daichao/节俭用-全表单进件-接口文档.md",
+    "shuhe/workspace/repayengine/base/bizflow/重资产分期制还款同步流程V401.md",
+    "shuhe/workspace/daichao",
+    "cookie.txt",
+    "daichao",
+    "shuhe/workspace/repayengine/base/bizflow/重资产分期制还款异步主流程V401.md",
+    "shuhe/workspace/repayengine/base/bizflow/重资产分期制还款异步子流程V401.md",
+    "shuhe/workspace/待冲销数据.md",
+    "shuhe/workspace/repayengine/base/bizflow/node/PH170036V1.md",
+    "shuhe/workspace/repayengine/base/api/还款申请统一提交入口.md",
+    "shuhe/workspace/repayengine/base/api/还款申请结果查询.md",
+    "shuhe/workspace/skills/api-doc-gen.md",
+    "shuhe/workspace/repayengine/base/api",
+    "shuhe/workspace/skills/bizflow-doc-gen.md",
+    "shuhe/workspace/repayengine/base/bizflow/出让订单还款流程V1.md",
+    "shuhe/workspace/accountingoperation/iteration/202503-开票信息查询/v_invoice_query_joint_loan_term_repayment_detail_v2.md",
+    "shuhe/workspace/repayengine/base/bizflow/node/PL070001_SYNC.md",
+    "shuhe/workspace/repayengine/base/bizflow/node/PS150001.md",
+    "shuhe/workspace/repayengine/base/bizflow/node/PS140001.md",
+    "shuhe/workspace/repayengine/base/bizflow/node/PS120001.md",
+    "shuhe/workspace/repayengine/base/bizflow/node/PS110001.md",
+    "shuhe/workspace/初始化bizflow.md",
+    "shuhe/workspace/repayengine/base/bizflow/轻资产同步还款提交流程.md",
+    "shuhe/workspace/skills",
+    "shuhe/workspace/repayengine/base/bizflow/node/PH110001.md",
+    "shuhe/workspace/repayengine/base/bizflow/node/PH170069.md",
+    "shuhe/workspace/repayengine/base/bizflow/轻资产还款受理流程同步主流程Vl3.1.0.md",
+    "shuhe/workspace/accountingoperation/iteration/202503-开票信息查询/test_invoice_query_not_joint_loan_v2.sql",
+    "shuhe/workspace/accountingoperation/iteration/202503-开票信息查询/test_invoice_query_joint_loan_v2.sql",
+    "Users/wangtaotao/Documents/workspace_v2/dept-yibu/requirements/REQ-34086-开票信息查询",
+    "Users/wangtaotao/Documents/workspace_v2/dept-yibu/requirements",
+    "Users/wangtaotao/Documents/workspace_v2/dept-yibu",
+    "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/原始需求-2026-02-25-10-21-53.png"
   ]
 }

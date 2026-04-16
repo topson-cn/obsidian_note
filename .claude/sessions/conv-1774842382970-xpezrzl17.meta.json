@@ -1,0 +1,20 @@
+{
+  "id": "conv-1774842382970-xpezrzl17",
+  "title": "Update accounting work order reconciliation pro...",
+  "titleGenerationStatus": "success",
+  "createdAt": 1774842382971,
+  "updatedAt": 1775118826151,
+  "lastResponseAt": 1774849271237,
+  "sessionId": "4e5c7c55-f0de-4977-88ee-a420ea9839f6",
+  "sdkSessionId": "4e5c7c55-f0de-4977-88ee-a420ea9839f6",
+  "currentNote": "shuhe/workspace/accountingoperation/base/06-核心流程详情/工单调账核心流程.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

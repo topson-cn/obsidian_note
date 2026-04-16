@@ -1,0 +1,20 @@
+{
+  "id": "conv-1775790866404-iix0acs4d",
+  "title": "Summarize skill for business flow documentation...",
+  "titleGenerationStatus": "success",
+  "createdAt": 1775790866404,
+  "updatedAt": 1775793804673,
+  "lastResponseAt": 1775791131326,
+  "sessionId": "739a8d90-58a5-44f0-9e7d-a6ecccc54f0b",
+  "sdkSessionId": "739a8d90-58a5-44f0-9e7d-a6ecccc54f0b",
+  "currentNote": "shuhe/workspace/初始化bizflow.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 215,
+    "cacheReadInputTokens": 101872,
+    "contextWindow": 200000,
+    "contextTokens": 102088,
+    "percentage": 51
+  }
+}

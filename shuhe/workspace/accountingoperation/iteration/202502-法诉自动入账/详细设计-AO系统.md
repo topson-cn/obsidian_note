@@ -14,6 +14,90 @@
 ### 概要设计（如有概要设计必须填写）
 [[功能模块清单]]
 
+#### 整体流程时序图
+
+```mermaid
+sequenceDiagram
+    participant T as Themis系统
+    participant AO as AO系统
+    participant BPM as BPM审核
+    participant RE as RepayEngine
+    participant FC as FeeCalculator
+    participant LC as LoanCore
+
+    Note over T,LC: === 法诉自动入账完整流程 ===
+
+    Note over T,AO: 1. 流水查询阶段
+    T->>AO: 查询银行流水信息
+    AO-->>T: 返回流水总额、可用余额、已用金额
+
+    Note over T,AO: 2. 预校验阶段
+    T->>AO: 发起预校验
+    AO->>AO: 参数校验、订单校验、流水校验、金额校验
+    AO->>FC: 调账试算
+    FC-->>AO: 可调减金额
+    AO->>RE: 还款试算
+    RE-->>AO: 应还总金额
+    AO-->>T: 返回预校验结果(含账损金额/账损率)
+
+    Note over T,AO: 3. 提交还款阶段
+    T->>AO: 提交还款(传入BPM审批单号)
+    AO->>AO: 幂等校验 + 再次预校验
+    AO->>AO: 锁定订单账务状态
+    AO-->>T: 返回提交成功(立即响应)
+
+    Note over AO,LC: 4. 异步处理阶段
+    activate AO
+
+    Note over AO: 步骤1: 批量挂账
+    AO->>AO: 按订单拆分流水
+    AO->>AO: 生成挂账记录
+
+    Note over AO: 步骤2: 调账减免
+    AO->>AO: 逐个发起调账
+    loop 每个需调账订单
+        AO->>AO: 调账处理(支持并发)
+    end
+
+    Note over AO: 步骤3: 账损挂账
+    AO->>AO: 计算账损金额
+    AO->>AO: 批量生成账损挂账
+
+    Note over AO,LC: 步骤4: 预约还款
+    AO->>AO: 预约还款校验
+    AO->>AO: 保存预约信息
+    AO->>LC: 解锁订单账务
+    activate LC
+    LC-->>AO: 解锁完成
+    deactivate LC
+    AO->>RE: submitRepay(litigationFlag=true)
+    activate RE
+    RE->>FC: trialCalculate(试算,透传法诉标识)
+    activate FC
+    FC-->>RE: 试算结果
+    deactivate FC
+    RE->>LC: accounting(入账,透传法诉标识)
+    activate LC
+    LC-->>RE: 入账结果
+    deactivate LC
+    RE-->>AO: RepayResult
+    deactivate RE
+
+    Note over AO: 步骤5: 结果汇总
+    AO->>AO: 汇总所有子流程结果
+    AO->>AO: 更新最终状态
+    AO->>T: 发送MQ通知结果
+
+    deactivate AO
+```
+
+**流程说明**：
+1. **流水查询**：Themis查询AO系统获取银行流水可用余额
+2. **预校验**：AO系统进行参数、订单、流水、金额四大校验，计算账损
+3. **提交还款**：Themis提交还款，AO系统立即响应后异步处理
+4. **异步处理**：依次执行批量挂账→调账减免→账损挂账→预约还款
+5. **结果通知**：处理完成后通过MQ通知Themis系统最终结果
+
 ### 术语表
 
 | 术语 | 解释 |
@@ -65,7 +149,6 @@
 ### 功能设计
 
 #### 类图
-
 ##### 各功能核心类图
 
 ```mermaid
@@ -80,6 +163,8 @@ classDiagram
     class BankFlowQueryService {
         +queryFlow(String flowNo) BankFlowInfo
         +queryChargedAmount(String flowNo) Integer
+        +calculateUsedAmount(String bankSerial, String bankAccount) UsedAmountResult
+        +isLitigationAccount(String bankAccount) Boolean
     }
 
     class BankFlowInfo {
@@ -88,6 +173,12 @@ classDiagram
         -Integer totalAmount
         -Integer availableAmount
         -Date transactionTime
+        -Boolean isLitigationAccount
+    }
+
+    class UsedAmountResult {
+        -Integer usedAmount
+        -String accountType
     }
 
     class ChargeUpTransLog {
@@ -101,11 +192,19 @@ classDiagram
     class BankFlowRepository {
         +findByFlowNo(String flowNo) BankFlowInfo
         +findChargedAmountByFlowNo(String flowNo) Integer
+        +findByBankSerial(String bankSerial) BankTransFlowInfo
+    }
+
+    class OverFlowPaymentRepository {
+        +sumByBankSerial(String bankSerial) Integer
+        +sumNetAmountByBankSerial(String bankSerial) Integer
     }
 
     LitigationController --> BankFlowQueryService
     BankFlowQueryService --> BankFlowRepository
+    BankFlowQueryService --> OverFlowPaymentRepository
     BankFlowQueryService --> BankFlowInfo
+    BankFlowQueryService --> UsedAmountResult
     BankFlowQueryService --> ChargeUpTransLog
 ```
 
@@ -114,10 +213,12 @@ classDiagram
 | 类名 | 作用说明 | 设计模式 |
 |------|----------|----------|
 | LitigationController | 法诉接口控制器，统一管理流水查询、预校验、提交还款接口 | MVC模式 |
-| BankFlowQueryService | 流水查询核心服务，整合流水信息和已挂账金额查询 | 服务层模式 |
-| BankFlowInfo | 银行流水信息实体，封装流水基本数据 | 值对象模式 |
+| BankFlowQueryService | 流水查询核心服务，整合流水信息和已挂账金额查询，支持区分法诉/非法诉账户计算已用金额 | 服务层模式 |
+| BankFlowInfo | 银行流水信息实体，封装流水基本数据和账户类型标识 | 值对象模式 |
+| UsedAmountResult | 已使用金额计算结果，包含已用金额和账户类型 | 值对象模式 |
 | ChargeUpTransLog | 挂账日志实体（复用现有表），记录挂账流水历史 | 实体模式 |
-| BankFlowRepository | 流水数据访问层，负责数据库查询操作 | 仓储模式 |
+| BankFlowRepository | 银行流水数据访问层，负责查询bank_trans_flow_info表 | 仓储模式 |
+| OverFlowPaymentRepository | 挂账记录数据访问层，负责查询over_flow_payment表 | 仓储模式 |
 
 #### 时序图
 
@@ -129,32 +230,52 @@ sequenceDiagram
     participant C as LitigationController
     participant S as BankFlowQueryService
     participant R as BankFlowRepository
+    participant P as OverFlowPaymentRepository
     participant DB as 数据库
 
-    T->>C: /queryBankFlowInfo(flowNo)
+    T->>C: /queryBankFlowInfo(bankSerial)
     activate C
 
-    C->>S: queryBankFlowInfo(flowNo)
+    C->>S: queryBankFlowInfo(bankSerial)
     activate S
 
-    S->>R: findByFlowNo(flowNo)
+    Note over S: 1. 查询银行流水基础信息
+    S->>R: findByBankSerial(bankSerial)
     activate R
-    R->>DB: 查询银行流水基础信息
+    R->>DB: SELECT * FROM bank_trans_flow_info WHERE bank_serial = ?
     DB-->>R: 流水信息
-    R-->>S: BankFlowInfo
+    R-->>S: BankTransFlowInfo
     deactivate R
 
-    S->>R: findChargedAmountByFlowNo(flowNo)
-    activate R
-    R->>DB: 查询已挂账金额
-    DB-->>R: 已挂账金额
-    R-->>S: chargedAmount
-    deactivate R
+    alt 查不到流水信息
+        S-->>C: 报错：银行流水不存在
+        C-->>T: 返回错误
+    else 查询成功
+        Note over S: 2. 判断账户类型
+        S->>S: isLitigationAccount(bankAccount)
 
-    S-->>C: QueryBankFlowResp(流水信息+已挂账金额)
+        Note over S: 3. 计算已使用金额
+        S->>P: 根据账户类型计算已用金额
+        activate P
+        alt 法诉对公账户
+            P->>DB: SELECT sum(trans_amount) FROM over_flow_payment WHERE bank_serial = ?
+            Note over S: 已用金额 = sum(trans_amount)
+        else 非法诉对公账户
+            P->>DB: SELECT sum(trans_amount - over_flow_amount) FROM over_flow_payment WHERE bank_serial = ?
+            Note over S: 已用金额 = sum(trans_amount - over_flow_amount)
+        end
+        DB-->>P: usedAmount
+        P-->>S: usedAmount
+        deactivate P
+
+        Note over S: 4. 计算可用余额
+        S->>S: availableAmount = transAmount - usedAmount
+
+        S-->>C: QueryBankFlowResp(流水信息+已用金额+可用余额)
+        C-->>T: 返回查询结果
+    end
+
     deactivate S
-
-    C-->>T: 返回查询结果
     deactivate C
 ```
 
@@ -163,15 +284,88 @@ sequenceDiagram
 **业务场景**：Themis系统查询法诉还款可用的银行流水信息
 
 **流程说明**：
-1. Themis系统调用AO系统的`/queryBankFlowInfo`接口，传入银行流水号
-2. AO系统查询本地存储的银行流水基础信息
-3. AO系统查询该流水已挂账的金额明细
-4. 汇总返回流水总额、可用余额（总额-已挂账）和挂账明细
+1. Themis系统调用AO系统的`/queryBankFlow`接口，传入银行收款流水号
+2. AO系统查询本地`bank_trans_flow_info`表获取流水基础信息
+3. 如果查不到流水则报错，查到则继续判断账户类型
+4. AO系统根据账户类型计算已使用金额：
+   - **法诉对公账户**：`sum(trans_amount)`，法诉账户存在挂账，说明这部分已经发起自动入账了
+   - **非法诉对公账户**：`sum(trans_amount - over_flow_amount)`，非法诉账户会被自动挂账，需判断真实使用金额
+5. 计算可用余额 = 交易金额 - 已使用金额
+6. 汇总返回流水总额、可用余额和已用金额
 
 **注意点**：
 - 本模块仅做数据查询，不进行任何状态变更
-- 可用余额 = 流水总额 - 已挂账金额
+- 可用余额 = 流水总额 - 已使用金额
+- 法诉账户和非法诉账户的已用金额计算逻辑不同
 - 支持查询历史挂账记录明细
+
+---
+
+#### 核心实现逻辑
+
+**查询步骤**：
+
+| 步骤 | 说明 | 涉及表 |
+|------|------|--------|
+| 1 | 按银行收款流水号查询流水基础信息 | `bank_trans_flow_info` |
+| 2 | 判断收款账户类型（法诉/非法诉） | - |
+| 3 | 根据账户类型计算已使用金额 | `over_flow_payment` |
+| 4 | 计算可用余额 | - |
+
+**已使用金额计算逻辑**：
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    已使用金额计算策略                            │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  1. 法诉对公账户：                                               │
+│     ┌─────────────────────────────────────────────────────┐    │
+│     │ usedAmount = sum(trans_amount)                      │    │
+│     │                                                     │    │
+│     │ 原因：法诉账户存在挂账，说明这部分已经发起自动入账了  │    │
+│     └─────────────────────────────────────────────────────┘    │
+│                                                                 │
+│  2. 非法诉对公账户：                                             │
+│     ┌─────────────────────────────────────────────────────┐    │
+│     │ usedAmount = sum(trans_amount - over_flow_amount)   │    │
+│     │                                                     │    │
+│     │ 原因：非法诉账户会被自动挂账，需判断真实使用金额      │    │
+│     └─────────────────────────────────────────────────────┘    │
+│                                                                 │
+│  3. 可用余额计算：                                               │
+│     ┌─────────────────────────────────────────────────────┐    │
+│     │ availableAmount = transAmount - usedAmount          │    │
+│     └─────────────────────────────────────────────────────┘    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**SQL查询示例**：
+
+```sql
+-- 1. 查询银行流水基础信息
+SELECT * FROM bank_trans_flow_info
+WHERE bank_serial = #{bankSerial};
+
+-- 2. 法诉对公账户：计算已使用金额
+SELECT COALESCE(SUM(trans_amount), 0) AS used_amount
+FROM over_flow_payment
+WHERE bank_serial = #{bankSerial};
+
+-- 3. 非法诉对公账户：计算已使用金额（净额）
+SELECT COALESCE(SUM(trans_amount - over_flow_amount), 0) AS used_amount
+FROM over_flow_payment
+WHERE bank_serial = #{bankSerial};
+```
+
+**异常处理**：
+
+| 异常场景 | 处理方式 | 返回码 |
+|----------|----------|--------|
+| 银行流水不存在 | 返回错误，提示流水不存在 | BANK_FLOW_NOT_FOUND |
+| 数据库查询异常 | 返回系统错误，记录日志 | SYSTEM_ERROR |
+| 账户类型无法识别 | 默认按非法诉账户处理 | - |
 
 ### 接口详细设计（必填）
 
@@ -275,7 +469,7 @@ sequenceDiagram
 
 ### 功能设计
 
-预校验模块负责对法诉自动入账进行全面的前置校验，包含四大类校验：基础校验、订单维度校验、金额校验、规则校验，最终计算各订单账损金额。
+预校验模块负责对法诉自动入账进行全面的前置校验，包含四大类校验：**参数校验**、**订单校验**、**银行流水校验**、**金额校验**，最终计算各订单账损金额和账损率。
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -284,25 +478,42 @@ sequenceDiagram
 │                                                             │
 │  校验步骤级别（串行）:                                       │
 │  ┌────────┐   ┌────────┐   ┌────────┐   ┌────────┐         │
-│  │基础校验 │──▶│订单校验 │──▶│金额校验 │──▶│规则校验 │         │
-│  └────────┘   └────────┘   └────────┘   └────────┘         │
-│       │                                           │         │
-│       ▼                                           ▼         │
-│  ┌────────┐   ┌────────┐                              │
-│  │账损计算 │   │返回结果 │                              │
-│  └────────┘   └────────┘                              │
+│  │参数校验 │──▶│订单校验 │──▶│银行流水 │──▶│金额校验 │         │
+│  └────────┘   └────────┘   │校验    │   └────────┘         │
+│                             └────────┘        │              │
+│                                │             │              │
+│                                ▼             ▼              │
+│                            ┌────────┐   ┌────────┐          │
+│                            │账损计算 │   │返回结果 │          │
+│                            └────────┘   └────────┘          │
 │                                                             │
-│  订单级别（并发）:                                           │
-│  ┌────────┐                                                │
-│  │订单校验 │  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐             │
-│  │        │  │01│ │02│ │03│ │...│ │49│ │50│             │
-│  │        │  └──┘ └──┘ └──┘ └──┘ └──┘ └──┘  (线程池)   │
-│  └────────┘                                                │
+│  订单级别（漏斗式并发）:                                       │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │           订单校验（9条规则，漏斗式）                 │    │
+│  │  ┌─────┐   ┌─────┐   ┌─────┐   ┌─────┐   ┌─────┐    │    │
+│  │  │订单1│──▶│订单2│──▶│订单3│──▶│... │──▶│订单N│    │    │
+│  │  └──┬──┘   └──┬──┘   └──┬──┘   └──┬──┘   └──┬──┘    │    │
+│  │     │         │         │         │         │         │    │
+│  │  ┌──▼▼▼┐   ┌──▼▼▼┐   ┌──▼▼▼┐   ┌──▼▼▼┐   ┌──▼▼▼┐    │    │
+│  │  │规则1│   │规则1│   │规则1│   │规则1│   │规则1│    │    │
+│  │  │ ▼  │   │ ▼  │   │ ▼  │   │ ▼  │   │ ▼  │    │    │
+│  │  │规则2│   │规则2│   │规则2│   │规则2│   │规则2│    │    │
+│  │  │ ▼  │   │ ✗  │   │ ▼  │   │ ✗  │   │ ▼  │    │    │
+│  │  │规则3│   │(退出)│  │规则3│   │(退出)│  │规则3│    │    │
+│  │  │ ▼  │         │   │ ▼  │         │   │ ✗  │    │    │
+│  │  │...│         │   │...│         │   │(退出)│    │    │
+│  │  │ ▼  │         │   │ ▼  │         │         │    │    │
+│  │  │通过│         │   │通过│         │         │    │    │
+│  │  └────┘         │   └────┘         │         │    │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  说明: 订单2被规则2拦截后退出，订单5被规则4拦截后退出       │
+│  最终只有订单1、3、N通过全部规则，进入下一步骤              │
 │                                                             │
 │  ┌────────┐                                                │
-│  │调账试算 │  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐                   │
-│  │        │  │01│ │02│ │03│ │...│ │30│                   │
-│  │        │  └──┘ └──┘ └──┘ └──┘ └──┘  (线程池)         │
+│  │账损计算 │  ┌──┐ ┌──┐ ┌──┐ ┌──┐ ┌──┐                   │
+│  │(仅通过订单)│01│ │03│ │...│ │N │   (线程池)         │
+│  │        │  └──┘ └──┘ └──┘ └──┘ └──┘                   │
 │  └────────┘                                                │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
@@ -310,11 +521,25 @@ sequenceDiagram
 
 > **执行策略**：
 > - **校验步骤级别**：严格串行执行
->   - 基础校验 → 订单校验 → 金额校验 → 规则校验 → 账损计算
-> - **订单级别**：多线程并发处理
->   - 每个校验步骤内部可使用线程池并发处理多个订单
->   - 例如：订单校验有50个订单，可启动10个线程并发校验
->   - 例如：调账试算有30个订单，可启动5个线程并发调用feecalculator
+>   - 参数校验 → 订单校验 → 银行流水校验 → 金额校验 → 账损计算
+>   - 任一步骤失败则立即终止后续步骤
+>
+> - **订单级别**：**漏斗式校验** + 多线程并发
+>   - 每个订单的校验规则按顺序执行，被某条规则拦截则立即退出该订单的校验
+>   - 例如：订单校验有9条规则，订单1在第3条规则被拦截，则不再执行规则4-9
+>   - 多个订单可使用线程池并发校验
+>   - **如果全部订单都被拦截，则立即退出整个校验流程**
+>   - 只有通过所有校验规则的订单才进入账损计算步骤
+>   - 例如：账损计算只对通过校验的订单进行（如50个订单中30个被拦截，只计算20个）
+>
+> - **数据查询优化**：批量查询 + 分发到子任务
+>   - **数据库操作**：采用"先批量查询，再分发到子任务"模式
+>     - 例如：订单校验前，一次性批量查询所有订单的订单信息、订单标签、锁单记录、分期信息等
+>     - 然后将查询结果分发到各订单的校验子任务，避免在循环中频繁查询数据库
+>   - **外部接口调用**：不支持批量的接口，需在循环内逐条调用
+>     - 例如：feecalculator.trialAdjust()、repayengine.trialRepay() 等外部服务接口
+>     - **熔断保护**：调用外部接口时需配置熔断器，防止雪崩
+>     - **异常处理**：外部接口异常时，返回校验不通过，错误提示："调用接口异常请重试"
 
 #### 类图
 
@@ -336,26 +561,48 @@ classDiagram
         +checkAmount(PreCheckReq) CheckResult
         +checkRules(PreCheckReq) CheckResult
         +calculateLoss(PreCheckReq) LossCalculationResult
+        +checkParams(PreCheckReq) CheckResult
+        +checkBankFlow(PreCheckReq) CheckResult
+        +checkLitigationTag(OrderInfo) Boolean
+        +checkInstallmentStatus(OrderInfo) Boolean
+        +checkPendingChargeOrder(OrderInfo) Boolean
+        +checkBillType(OrderInfo) Boolean
+        +checkInstallmentOverdue(OrderInfo) Boolean
     }
 
     class OrderValidator {
         +validateOrder(String orderNo) ValidationResult
         +checkLitigationOrder(String orderNo) Boolean
         +checkOrderLocked(String orderNo) Boolean
+        +checkOrderStatus(OrderInfo) Boolean
+        +checkRepayAmount(OrderInfo, Integer) Boolean
+        +checkClearMark(OrderInfo, Integer) Boolean
+        +checkBillType(OrderInfo) Boolean
+        +checkInstallmentOverdue(OrderInfo) Boolean
+        +checkPendingChargeOrder(OrderInfo) Boolean
     }
 
     class AmountCalculator {
         +calculateAdjustableAmount(String orderNo) Integer
+        +calculateTotalAmount(String orderNo) Integer
         +calculateLossAmount(Integer total, Integer adjust, Integer repay) Integer
+        +calculateLossRate(Integer lossAmount, Integer principal) BigDecimal
     }
 
     class FeeCalculatorClient {
-        +trialAdjust(String orderNo, Integer amount) Integer
+        +trialAdjust(String orderNo) Integer
+    }
+
+    class RepayEngineClient {
+        +trialRepay(String orderNo) Integer
     }
 
     class LoanCoreClient {
         +queryOrder(String orderNo) OrderInfo
         +checkOrderLocked(String orderNo) Boolean
+        +queryLitigationTagRecord(String orderNo) LitigationTagRecord
+        +checkPendingChargeOrder(String orderNo) Boolean
+        +checkInstallmentOverdue(String orderNo) Boolean
     }
 
     class PreCheckResult {
@@ -371,17 +618,42 @@ classDiagram
         -BigDecimal adjustableAmount
         -BigDecimal repayAmount
         -BigDecimal lossAmount
+        -BigDecimal lossRate
+        -BigDecimal maxLossRate
+    }
+
+    class LossRateValidator {
+        +validateLossRate(Integer lossAmount, Integer principal, BigDecimal maxRate) ValidationResult
+        +calculateLossRate(Integer lossAmount, Integer principal) BigDecimal
+    }
+
+    class BankFlowValidator {
+        +validateBankFlow(String bankSerial, Integer repayAmount) ValidationResult
+        +checkAvailableAmount(String bankSerial, Integer repayAmount) Boolean
+    }
+
+    class LitigationTagRecord {
+        -String orderNo
+        -Integer unpaidPrincipal  // 打标时未还本金
+        -DateTime tagTime
     }
 
     LitigationController --> LitigationPreCheckService
     LitigationPreCheckService --> OrderValidator
     LitigationPreCheckService --> AmountCalculator
     LitigationPreCheckService --> FeeCalculatorClient
+    LitigationPreCheckService --> RepayEngineClient
     LitigationPreCheckService --> LoanCoreClient
     LitigationPreCheckService --> PreCheckResult
     LitigationPreCheckService --> LossInfo
+    LitigationPreCheckService --> LossRateValidator
+    LitigationPreCheckService --> BankFlowValidator
     AmountCalculator --> FeeCalculatorClient
+    AmountCalculator --> RepayEngineClient
     OrderValidator --> LoanCoreClient
+    LossRateValidator --> AmountCalculator
+    BankFlowValidator --> LoanCoreClient
+    LoanCoreClient --> LitigationTagRecord
 ```
 
 ##### 各功能核心类说明
@@ -391,11 +663,15 @@ classDiagram
 | LitigationController | 法诉接口控制器，统一管理流水查询、预校验、提交还款接口 | MVC模式 |
 | LitigationPreCheckService | 预校验核心服务，编排各类校验逻辑 | 服务层模式、策略模式 |
 | OrderValidator | 订单校验器，负责订单维度的各类校验 | 验证器模式 |
-| AmountCalculator | 金额计算器，负责调账试算和账损计算 | 计算器模式 |
-| FeeCalculatorClient | 费用计算客户端，调用feecalculator系统 | 外观模式 |
-| LoanCoreClient | loancore客户端，查询订单信息 | 外观模式 |
+| AmountCalculator | 金额计算器，负责调账试算、还款试算和账损计算 | 计算器模式 |
+| LossRateValidator | 账损率校验器，负责校验账损率是否在允许范围内 | 验证器模式 |
+| BankFlowValidator | 银行流水校验器，负责流水存在性和可用金额校验 | 验证器模式 |
+| FeeCalculatorClient | 费用计算客户端，调用feecalculator系统进行调账试算 | 外观模式 |
+| RepayEngineClient | 还款引擎客户端，调用repayengine系统进行还款试算 | 外观模式 |
+| LoanCoreClient | loancore客户端，查询订单信息、诉讼标打标记录等 | 外观模式 |
 | PreCheckResult | 预校验结果对象 | 值对象模式 |
 | LossInfo | 账损信息对象 | 值对象模式 |
+| LitigationTagRecord | 诉讼标打标记录，存储打标时的未还本金 | 值对象模式 |
 
 #### 时序图
 
@@ -407,9 +683,12 @@ sequenceDiagram
     participant C as LitigationController
     participant S as LitigationPreCheckService
     participant OV as OrderValidator
+    participant BF as BankFlowValidator
+    participant LV as LossRateValidator
     participant AC as AmountCalculator
     participant LC as LoanCoreClient
     participant FC as FeeCalculatorClient
+    participant RE as RepayEngineClient
 
     T->>C: /preCheck(bankFlowNo, orderNos)
     activate C
@@ -418,60 +697,104 @@ sequenceDiagram
     activate S
 
     rect rgb(200, 220, 240)
-    note right of S: 基础校验
-    S->>S: checkBasicInfo(request)
-    S->>S: 校验收款账户
-    S->>S: 校验银行流水号存在性
+    note right of S: 一、参数校验
+    S->>S: checkParams(request)
+    S->>S: 校验参数非空
+    S->>S: 校验订单号去重
     end
 
     rect rgb(220, 240, 200)
-    note right of S: 订单维度校验
+    note right of S: 二、订单校验（漏斗式）
+    note right of S: 输入: 50个订单
     loop 每个订单
         S->>OV: validateOrder(orderNo)
         activate OV
         OV->>LC: queryOrder(orderNo)
         LC-->>OV: OrderInfo
-        OV->>LC: checkOrderLocked(orderNo)
-        LC-->>OV: lockedStatus
+
+        note right of OV: 规则1: 订单存在性
         OV->>OV: 校验订单存在性
-        OV->>OV: 校验法诉订单标识
-        OV->>OV: 校验流程状态
-        OV-->>S: ValidationResult
+        alt 订单不存在
+            OV-->>S: ValidationResult(失败，退出)
+            note right of OV: 该订单不再执行后续规则
+        else 订单存在
+            note right of OV: 规则2: 订单状态
+            OV->>OV: 校验订单状态是否已结清
+            alt 已结清
+                OV-->>S: ValidationResult(失败，退出)
+            else 未结清
+                note right of OV: 规则3-9: 继续校验
+                OV->>OV: 校验还款金额是否超过未还金额
+                OV->>OV: 校验还款金额等于未还金额时是否标记结清
+                OV->>OV: 校验是否账单制订单
+                OV->>OV: 校验订单标签是否为诉讼标
+                OV->>LC: checkOrderLocked(是否锁单)
+                LC-->>OV: lockedStatus
+                OV->>LC: checkInstallmentOverdue(分期状态是否全部逾期)
+                LC-->>OV: installmentStatus
+                OV->>LC: checkPendingChargeOrder(是否存在未完成挂账单)
+                LC-->>OV: chargeOrderStatus
+                alt 任一规则不通过
+                    OV-->>S: ValidationResult(失败，记录具体规则)
+                else 全部通过
+                    OV-->>S: ValidationResult(通过)
+                end
+            end
+        end
         deactivate OV
     end
-    S->>S: 校验重复订单
-    S->>S: 校验部分还款支持
+    note right of S: 假设28个通过，22个被拦截
+    alt 全部订单被拦截
+        S-->>C: PreCheckResult(失败)
+        C-->>T: 校验失败响应
+    end
     end
 
     rect rgb(240, 220, 200)
-    note right of S: 金额校验
-    S->>S: checkAmount(request)
-    S->>S: 结清/账损一致性校验
-    S->>S: 待还金额校验
-    S->>S: 挂账流水余额校验
+    note right of S: 三、银行流水校验
+    S->>BF: validateBankFlow(bankSerial, repayAmount)
+    activate BF
+    BF->>LC: queryBankFlow(bankSerial)
+    LC-->>BF: BankFlowInfo
+    BF->>BF: 校验流水存在性
+    BF->>BF: checkAvailableAmount(可用金额>0，复用流水查询模块规则)
+    BF->>BF: 校验还款金额总和<=可用金额
+    BF-->>S: ValidationResult
+    deactivate BF
     end
 
     rect rgb(240, 200, 220)
-    note right of S: 规则校验
-    S->>S: checkRules(request)
-    S->>S: 账期制校验
-    S->>S: 账损规则校验
+    note right of S: 四、金额校验
+    S->>S: checkAmount(request)
+    S->>S: 校验还款金额>0
+    S->>LV: validateLossRate(结清场景账损率校验)
+    activate LV
+    LV->>LV: calculateLossRate(账损金额/打诉讼标时未还本金)
+    LV->>LV: 校验0 < 计算账损率 <= 账损最大比例
+    LV-->>S: ValidationResult
+    deactivate LV
     end
 
     rect rgb(220, 200, 240)
-    note right of S: 账损计算
-    loop 每个订单
-        S->>AC: calculateAdjustableAmount(orderNo)
+    note right of S: 五、账损计算（仅通过订单）
+    note right of S: 仅对28个通过校验的订单计算
+    loop 每个通过校验的订单
+        S->>AC: calculateLoss(orderNo)
         activate AC
-        AC->>FC: trialAdjust(orderNo, amount)
+        AC->>FC: trialAdjust(orderNo) 调账试算
         FC-->>AC: adjustableAmount
-        AC-->>S: adjustableAmount
+        AC->>RE: trialRepay(orderNo) 还款试算
+        RE-->>AC: totalAmount
+        AC->>AC: 账损金额 = MAX(应还总金额 - 最大可调减金额 - 还款提交金额, 0)
+        AC->>LC: queryLitigationTagRecord(orderNo) 查询诉讼标打标记录
+        LC-->>AC: litigationPrincipal
+        AC->>AC: 账损率 = 账损金额 / 打诉讼标时未还本金
+        AC-->>S: LossInfo
         deactivate AC
-        S->>S: calculateLossAmount()
     end
     end
 
-    S-->>C: PreCheckResult
+    S-->>C: PreCheckResult(28个通过，22个被拦截)
     deactivate S
 
     C-->>T: PreCheckResp
@@ -484,29 +807,337 @@ sequenceDiagram
 
 **流程说明**：
 1. Themis系统调用预校验接口，传入银行流水号和订单列表
-2. AO系统执行四大类校验：
-   - **基础校验**：收款账户、流水号校验
-   - **订单维度校验**：订单状态、法诉标识、锁定状态等
-   - **金额校验**：结清/账损一致性、待还金额、挂账余额
-   - **规则校验**：账期制、账损规则
-3. 调用feecalculator进行调账试算
-4. 计算各订单账损金额
-5. 返回校验结果和账损信息
+2. AO系统执行五大类校验：
+   - **参数校验**：非空校验、订单号去重校验
+   - **订单校验**：9条规则**漏斗式校验**（订单存在性、订单状态、还款金额、结清标记、账单制、诉讼标、锁单、逾期、挂账单）
+   - **银行流水校验**：流水存在性、可用金额校验（复用流水查询模块余额计算规则）、还款金额总和校验
+   - **金额校验**：还款金额>0校验、结清场景账损率校验
+   - **账损计算**：对**通过全部校验的订单**调用feecalculator调账试算、repayengine还款试算，计算账损金额和账损率
+3. 返回校验结果和账损信息
+
+**漏斗式校验机制**：
+> 订单校验采用"漏斗式"设计，每条订单按顺序通过9条规则：
+> - 订单在某条规则被拦截 → 立即停止该订单的后续校验 → 记录失败原因
+> - 全部订单都被拦截 → 立即退出整个校验流程 → 返回校验失败
+> - 只有通过全部9条规则的订单 → 进入账损计算阶段
+>
+> **示例**：50个订单输入订单校验
+> - 规则1拦截2个 → 剩余48个继续规则2
+> - 规则2拦截3个 → 剩余45个继续规则3
+> - ...
+> - 最终28个通过全部规则 → 进入账损计算
+> - 22个被各种规则拦截 → 返回各自失败原因
 
 **执行策略**：
 > **校验步骤级别**：严格串行执行
-> - 基础校验 → 订单校验 → 金额校验 → 规则校验 → 账损计算
+> - 参数校验 → 订单校验 → 银行流水校验 → 金额校验 → 账损计算
 >
-> **订单级别**：多线程并发处理
-> - 每个校验步骤内部可使用线程池并发处理多个订单
-> - 例如：订单校验有50个订单，可启动10个线程并发校验
-> - 例如：调账试算有30个订单，可启动5个线程并发调用feecalculator
+> **订单级别**：**漏斗式** + 多线程并发
+> - 每个订单的校验规则按顺序执行（规则1→规则2→...→规则9）
+> - 被拦截的订单立即退出，不执行后续规则
+> - 多个订单可使用线程池并发校验
+> - 账损计算只对通过全部校验的订单执行
 
 **注意点**：
 - 所有校验项遵循"快速失败"原则，任一校验失败立即返回
-- 调账试算失败不影响校验通过，但账损金额为0
+- **订单采用漏斗式校验，被拦截订单不进行后续规则**
+- **全部订单被拦截则立即退出，不执行后续校验步骤**
+- 调账试算失败不影响校验通过，但可调减金额为0
 - 校验结果需记录详细的失败原因
 - 订单级并发处理需注意外部系统（loancore、feecalculator）的调用限流
+- 账损率计算基于打诉讼标时未还本金，与当前未还本金不同
+
+#### 核心实现逻辑
+
+预校验模块包含四大类校验：**参数校验**、**订单校验**、**银行流水校验**、**金额校验**。
+
+**漏斗式校验策略**：
+
+订单校验采用"漏斗式"设计，订单需要依次通过9条校验规则：
+- 如果某条订单在某条规则被拦截，则立即停止该订单的后续校验
+- 如果全部订单都被拦截，则立即退出整个校验流程
+- 只有通过全部规则的订单才会进入账损计算阶段
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    订单校验漏斗模型                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  输入: 50个订单                                              │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 规则1: 订单存在性                                      │    │
+│  │ 50个订单 ──▶ 48个通过 (2个被拦截)                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 规则2: 订单状态（已结清）                              │    │
+│  │ 48个订单 ──▶ 45个通过 (3个被拦截)                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 规则3: 还款金额校验                                    │    │
+│  │ 45个订单 ──▶ 43个通过 (2个被拦截)                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 规则4: 结清标记校验                                    │    │
+│  │ 43个订单 ──▶ 42个通过 (1个被拦截)                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 规则5: 账单制订单                                      │    │
+│  │ 42个订单 ──▶ 40个通过 (2个被拦截)                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 规则6: 诉讼标标签                                      │    │
+│  │ 40个订单 ──▶ 38个通过 (2个被拦截)                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 规则7: 订单锁单                                       │    │
+│  │ 38个订单 ──▶ 35个通过 (3个被拦截)                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 规则8: 分期逾期状态                                    │    │
+│  │ 35个订单 ──▶ 30个通过 (5个被拦截)                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 规则9: 未完成挂账单                                    │    │
+│  │ 30个订单 ──▶ 28个通过 (2个被拦截)                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  输出: 28个订单通过全部校验 → 进入账损计算                    │
+│  被拦截订单返回具体失败原因                                   │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**快速失败机制**：
+- 如果50个订单在规则1就被全部拦截，则立即返回，不执行规则2-9
+- 如果最终没有订单通过任何一条规则，则校验失败，不进行账损计算
+
+**数据查询优化策略**：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    数据查询优化设计                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  【数据库操作】批量查询 + 分发模式                            │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 步骤1: 收集查询关键字                                  │    │
+│  │ 50个订单号 → [orderNo1, orderNo2, ..., orderNo50]    │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 步骤2: 批量查询数据库                                  │    │
+│  │ • order_info: SELECT * WHERE order_no IN (...)       │    │
+│  │ • order_tag: SELECT * WHERE order_no IN (...)         │    │
+│  │ • accounting_apply_lock: SELECT * WHERE order_no IN   │    │
+│  │ • installment_info: SELECT * WHERE order_no IN (...)  │    │
+│  │ • over_flow_payment: SELECT * WHERE order_no IN (...) │    │
+│  │ • litigation_tag_record: SELECT * WHERE order_no IN   │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 步骤3: 数据分发到子任务                                │    │
+│  │ Map<orderNo, OrderInfo> 分发给各订单校验任务           │    │
+│  │ 子任务从Map中获取数据，无需再查数据库                    │    │
+│  └─────────────────────────────────────────────────────┘    │
+│       │                                                     │
+│       ▼                                                     │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 步骤4: 并发执行订单校验                                │    │
+│  │ 各线程从内存Map中读取数据进行校验                      │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  【外部接口调用】循环调用 + 熔断保护                          │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 账损计算阶段（外部接口调用）                           │    │
+│  │                                                     │    │
+│  │ for (Order order : passedOrders) {                  │    │
+│  │   try {                                            │    │
+│  │     // 调用调账试算接口（不支持批量）                 │    │
+│  │     adjustableAmount = feecalculator.trialAdjust()  │    │
+│  │                                                     │    │
+│  │     // 调用还款试算接口（不支持批量）                 │    │
+│  │     totalAmount = repayengine.trialRepay()          │    │
+│  │                                                     │    │
+│  │     // 计算账损                                      │    │
+│  │     lossAmount = calculateLoss(...)                │    │
+│  │   } catch (Exception e) {                           │    │
+│  │     // 熔断器统计异常                                │    │
+│  │     circuitBreaker.recordFailure();                 │    │
+│  │                                                     │    │
+│  │     // 返回校验不通过                                │    │
+│  │     return CheckResult.fail("调用接口异常请重试");   │    │
+│  │   }                                                │    │
+│  │ }                                                  │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  【熔断器配置】                                               │
+│  • 失败率阈值: 50%                                           │
+│  • 半开状态尝试调用: 3次                                      │
+│  • 超时时间: 3秒                                             │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**优化要点**：
+1. **数据库批量查询**：一次查询获取所有订单数据，避免N+1查询问题
+2. **内存分发**：使用Map存储查询结果，子任务从内存获取数据
+3. **外部接口串行调用**：不支持批量的接口需逐条调用
+4. **熔断保护**：防止外部接口异常导致系统雪崩
+5. **友好提示**：接口异常时提示用户"调用接口异常请重试"
+
+##### 一、参数校验
+
+| 校验项 | 校验规则 | 错误提示 |
+|--------|----------|----------|
+| 参数非空 | operator、receiveCardNo、litigationOrders不能为空 | 参数不能为空 |
+| 订单号去重 | litigationOrders中orderNo不能重复 | 订单号存在重复 |
+
+##### 二、订单校验
+
+| 校验项 | 校验规则 | 涉及表/接口 | 错误提示 |
+|--------|----------|-------------|----------|
+| 订单存在性 | 订单必须存在 | loancore.order_info | 订单不存在 |
+| 订单状态 | 订单状态不能是已结清 | loancore.order_info.status | 订单已结清 |
+| 还款金额校验 | 单订单还款金额 <= 订单未还金额 | loancore.order_info.unpaid_amount | 还款金额超过未还金额 |
+| 结清标记校验 | 还款金额 = 未还金额时，isClear必须为true | - | 还款金额等于未还金额时必须标记结清 |
+| 账单制订单 | 订单必须是账单制订单 | loancore.order_info.bill_type | 非账单制订单 |
+| 诉讼标标签 | 订单必须有诉讼标标签 | loancore.order_tag | 订单未打诉讼标标签 |
+| 订单锁单 | 订单未被锁定 | loancore.accounting_apply_lock | 订单已锁定 |
+| 分期逾期状态 | 订单所有分期均已逾期 | loancore.installment_info | 订单分期未全部逾期 |
+| 未完成挂账单 | 订单不能有未完成的挂账单 | ao.over_flow_payment | 订单存在未完成挂账单 |
+
+##### 三、银行流水校验
+
+| 校验项 | 校验规则 | 涉及表/接口 | 错误提示 |
+|--------|----------|-------------|----------|
+| 流水存在性 | 银行流水号必须存在 | ao.bank_trans_flow_info | 银行流水不存在 |
+| 可用金额 | 流水可用金额 > 0（复用流水查询模块余额计算规则） | ao.bank_trans_flow_info.available_amount | 银行流水可用金额不足 |
+| 还款金额总和 | 所有订单还款金额之和 ≤ 流水可用金额 | ao.bank_trans_flow_info.available_amount | 还款金额总和超过可用金额 |
+
+##### 四、金额校验
+
+| 校验项 | 校验规则 | 错误提示 |
+|--------|----------|----------|
+| 还款金额 | repayAmount > 0 | 还款金额必须大于0 |
+| 结清场景账损率 | 结清场景需校验账损率（详见账损计算部分） | 账损率校验失败 |
+
+##### 五、账损计算
+
+**账损金额计算公式**：
+
+```
+步骤1：调账试算
+  调用feecalculator.trialAdjust()获取最大可调减金额
+
+步骤2：还款试算
+  调用repayengine.trialRepay()获取应还总金额
+
+步骤3：计算账损金额
+  账损金额 = MAX(应还总金额 - 最大可调减金额 - 还款提交金额, 0)
+```
+
+**账损率计算公式**：
+
+```
+步骤1：查询诉讼标打标记录
+  从ao.litigation_tag_record获取打标时未还本金
+
+步骤2：计算账损率
+  账损率 = 账损金额 / 打诉讼标时未还本金
+```
+
+**账损率校验规则**：
+
+```
+0 < 计算账损率 <= 账损最大比例（入参） < 1
+```
+
+**计算流程图**：
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      账损计算流程                                │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  【账损金额计算】                                                │
+│                                                                 │
+│  1. 调账试算 - 获取最大可调减金额                                │
+│     ┌────────────────────────────────────────┐                  │
+│     │ feeCalculator.trialAdjust(orderNo)     │                  │
+│     │ 返回: adjustableAmount                  │                  │
+│     └────────────────────────────────────────┘                  │
+│                      ↓                                          │
+│  2. 还款试算 - 获取应还总金额                                    │
+│     ┌────────────────────────────────────────┐                  │
+│     │ repayEngine.trialRepay(orderNo)        │                  │
+│     │ 返回: totalAmount                       │                  │
+│     └────────────────────────────────────────┘                  │
+│                      ↓                                          │
+│  3. 计算账损金额                                                  │
+│     ┌────────────────────────────────────────┐                  │
+│     │ lossAmount = MAX(                      │                  │
+│     │   totalAmount - adjustableAmount - repayAmount,  │         │
+│     │   0                                     │                  │
+│     │ )                                      │                  │
+│     └────────────────────────────────────────┘                  │
+│                                                                 │
+│  【账损率计算与校验】                                            │
+│                                                                 │
+│  4. 获取打诉讼标时未还本金                                        │
+│     ┌────────────────────────────────────────┐                  │
+│     │ 查询诉讼标打标记录 ao.litigation_tag_record │             │
+│     │ 返回: litigationPrincipal               │                  │
+│     └────────────────────────────────────────┘                  │
+│                      ↓                                          │
+│  5. 计算账损率                                                    │
+│     ┌────────────────────────────────────────┐                  │
+│     │ lossRate = lossAmount / litigationPrincipal │              │
+│     └────────────────────────────────────────┘                  │
+│                      ↓                                          │
+│  6. 账损率校验                                                    │
+│     ┌────────────────────────────────────────┐                  │
+│     │ IF lossRate <= 0                       │                  │
+│     │    RETURN 校验失败（账损率必须大于0）          │              │
+│     │ IF lossRate > maxLossRate (入参)        │                  │
+│     │    RETURN 校验失败（账损率超过最大比例）         │              │
+│     │ RETURN 校验通过                          │                  │
+│     └────────────────────────────────────────┘                  │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**异常处理表**：
+
+| 异常场景 | 处理方式 | 返回结果 |
+|----------|----------|----------|
+| feecalculator不可用 | 可调减金额设为0，继续计算 | 校验通过，adjustableAmount=0 |
+| repayengine不可用 | 应还总金额设为0，继续计算 | 校验失败 |
+| 订单无诉讼标打标记录 | 校验失败 | 订单未打诉讼标标签 |
+| 账损金额=0 | 账损率=0，通过校验 | 校验通过，lossRate=0 |
+| 账损率超限 | 校验失败，返回超限订单号和账损率 | 校验失败 |
 
 ### 接口详细设计（必填）
 
@@ -516,7 +1147,7 @@ sequenceDiagram
 
 **接口描述**：法诉自动入账预校验
 
-**版本**：V0.3
+**版本**：V0.4
 
 **【接口定义参数规范】**
 
@@ -533,26 +1164,31 @@ sequenceDiagram
 |--------|------|------|------|------|
 | operator | String | 50 | Y | 操作人工号 |
 | receiveCardNo | String | 50 | Y | 收款卡号 |
+| maxLossRate | BigDecimal | - | Y | 账损最大比例，范围(0, 1)，如0.5表示50% |
 | litigationOrders | List | 100 | Y | 法诉订单列表，最多100个 |
 | litigationOrders[].bankSerial | String | 64 | Y | 银行流水号 |
 | litigationOrders[].orderNo | String | 50 | Y | 订单号 |
 | litigationOrders[].repayAmount | Integer | - | Y | 还款金额（分） |
+| litigationOrders[].isClear | Boolean | - | C | 结清标记，还款金额等于未还金额时必须为true |
 
 **Request Body样例**：
 ```json
 {
   "operator": "admin",
   "receiveCardNo": "6222021234567890",
+  "maxLossRate": 0.5,
   "litigationOrders": [
     {
       "bankSerial": "BF202502250001",
       "orderNo": "O001",
-      "repayAmount": 30000
+      "repayAmount": 30000,
+      "isClear": false
     },
     {
       "bankSerial": "BF202502250001",
       "orderNo": "O002",
-      "repayAmount": 20000
+      "repayAmount": 50000,
+      "isClear": true
     }
   ]
 }
@@ -573,6 +1209,8 @@ sequenceDiagram
 | data.orderCheckInfo[].adjustableAmount | Integer | Y | 可调减金额（分） |
 | data.orderCheckInfo[].repayAmount | Integer | Y | 本次还款金额（分） |
 | data.orderCheckInfo[].lossAmount | Integer | Y | 账损金额（分） |
+| data.orderCheckInfo[].lossRate | BigDecimal | Y | 账损率（保留4位小数） |
+| data.orderCheckInfo[].maxLossRate | BigDecimal | Y | 账损最大比例 |
 
 **Response Body样例（成功）**：
 ```json
@@ -587,14 +1225,18 @@ sequenceDiagram
         "totalAmount": 5000000,
         "adjustableAmount": 1000000,
         "repayAmount": 3000000,
-        "lossAmount": 1000000
+        "lossAmount": 1000000,
+        "lossRate": 0.1250,
+        "maxLossRate": 0.20
       },
       {
         "orderNo": "O002",
         "totalAmount": 2000000,
         "adjustableAmount": 0,
         "repayAmount": 2000000,
-        "lossAmount": 0
+        "lossAmount": 0,
+        "lossRate": 0.0000,
+        "maxLossRate": 0.15
       }
     ]
   }
@@ -648,10 +1290,16 @@ classDiagram
 
     class LitigationRepayService {
         +submit(SubmitRepayReq) SubmitRepayResult
+        +checkIdempotent(String bizSerial) IdempotentResult
         +recheck(SubmitRepayReq) CheckResult
         +lockOrders(List~String~) LockResult
         +saveRecord(SubmitRepayReq) String
         +startAsyncProcess(String recordId) void
+    }
+
+    class IdempotentCheckService {
+        +check(String bizSerial) IdempotentResult
+        +getExistingResult(String bizSerial) ProcessResult
     }
 
     class LitigationPreCheckService {
@@ -664,6 +1312,7 @@ classDiagram
 
     class LitigationRepayRecord {
         -String recordId
+        -String bizSerial
         -String bankFlowNo
         -Integer totalAmount
         -String status
@@ -673,6 +1322,7 @@ classDiagram
     class LitigationRepayDetail {
         -String detailId
         -String recordId
+        -String bizSerial
         -String orderNo
         -BigDecimal repayAmount
         -BigDecimal adjustAmount
@@ -687,26 +1337,37 @@ classDiagram
         +executeReserveRepay(String recordId) void
     }
 
+    class IdempotentResult {
+        -boolean exists
+        -String status
+        -ProcessResult result
+    }
+
     LitigationController --> LitigationRepayService
     LitigationController --> LitigationPreCheckService
+    LitigationRepayService --> IdempotentCheckService
     LitigationRepayService --> LitigationPreCheckService
     LitigationRepayService --> LoanCoreClient
     LitigationRepayService --> LitigationRepayRecord
     LitigationRepayService --> LitigationRepayDetail
     LitigationRepayService --> AsyncProcessExecutor
+    IdempotentCheckService --> IdempotentResult
+    IdempotentCheckService --> LitigationRepayRecord
 ```
 
 ##### 各功能核心类说明
 
-| 类名                        | 作用说明                        | 设计模式  |
-| ------------------------- | --------------------------- | ----- |
-| LitigationController      | 法诉接口控制器，统一管理流水查询、预校验、提交还款接口 | MVC模式 |
-| LitigationRepayService    | 提交还款核心服务                    | 服务层模式 |
-| LitigationPreCheckService | 复用预校验服务                     | 复用模式  |
-| LoanCoreClient            | loancore客户端，锁定订单账务          | 外观模式  |
-| LitigationRepayRecord     | 法诉还款记录实体                    | 实体模式  |
-| LitigationRepayDetail     | 法诉还款详情实体                    | 实体模式  |
-| AsyncProcessExecutor      | 异步流程执行器                     | 命令模式  |
+| 类名                         | 作用说明                                  | 设计模式  |
+| -------------------------- | ------------------------------------- | ----- |
+| LitigationController       | 法诉接口控制器，统一管理流水查询、预校验、提交还款接口          | MVC模式  |
+| LitigationRepayService     | 提交还款核心服务，包含幂等校验逻辑                      | 服务层模式  |
+| IdempotentCheckService     | 幂等校验服务，根据业务流水号检查并返回已有处理结果             | 策略模式  |
+| LitigationPreCheckService  | 复用预校验服务                                 | 复用模式   |
+| LoanCoreClient             | loancore客户端，锁定订单账务                     | 外观模式   |
+| LitigationRepayRecord      | 法诉还款记录实体，包含bizSerial业务流水号字段            | 实体模式   |
+| LitigationRepayDetail      | 法诉还款详情实体，包含bizSerial业务流水号字段            | 实体模式   |
+| AsyncProcessExecutor       | 异步流程执行器                                 | 命令模式   |
+| IdempotentResult           | 幂等校验结果实体，标识记录是否存在及其状态                  | 值对象模式  |
 
 #### 时序图
 
@@ -717,6 +1378,7 @@ sequenceDiagram
     participant T as Themis系统
     participant C as LitigationController
     participant S as LitigationRepayService
+    participant ID as IdempotentCheckService
     participant PS as LitigationPreCheckService
     participant LC as LoanCoreClient
     participant AE as AsyncProcessExecutor
@@ -728,41 +1390,63 @@ sequenceDiagram
     C->>S: submit(request)
     activate S
 
-    Note over S: 1. 再次校验
-    S->>PS: executeCheck(request)
-    activate PS
-    PS-->>S: PreCheckResult
-    deactivate PS
+    Note over S: 0. 幂等校验
+    S->>ID: checkIdempotent(bizSerial)
+    activate ID
+    ID->>DB: 查询litigation_repay_record
+    activate DB
+    DB-->>ID: 记录存在状态
 
-    alt 校验失败
-        S-->>C: 返回校验失败
-        C-->>T: 提交失败响应
-    else 校验通过
-        Note over S: 2. 锁定订单账务
-        S->>LC: accountingApply(orderNos)
-        activate LC
-        LC->>LC: 锁定订单账务
-        LC-->>S: LockResult
-        deactivate LC
+    alt 记录存在且处理中
+        ID-->>S: 返回处理中状态
+        S-->>C: 返回勿重复提交
+        C-->>T: 幂等响应(处理中)
+    else 记录存在且已完成
+        ID-->>S: 返回已完成结果
+        S-->>C: 返回原处理结果
+        C-->>T: 幂等响应(成功)
+    else 记录不存在(首次请求)
+        DB-->>ID: 无记录
+        ID-->>S: 校验通过
+        deactivate DB
+        deactivate ID
 
-        alt 锁定失败
-            S-->>C: 返回锁定失败
+        Note over S: 1. 再次校验
+        S->>PS: executeCheck(request)
+        activate PS
+        PS-->>S: PreCheckResult
+        deactivate PS
+
+        alt 校验失败
+            S-->>C: 返回校验失败
             C-->>T: 提交失败响应
-        else 锁定成功
-            Note over S: 3. 保存还款记录
-            S->>DB: 保存LitigationRepayRecord
-            activate DB
-            S->>DB: 保存LitigationRepayDetail
-            DB-->>S: recordId
-            deactivate DB
+        else 校验通过
+            Note over S: 2. 锁定订单账务
+            S->>LC: accountingApply(orderNos)
+            activate LC
+            LC->>LC: 锁定订单账务
+            LC-->>S: LockResult
+            deactivate LC
 
-            Note over S: 4. 启动异步处理
-            S->>AE: execute(recordId)
-            activate AE
-            Note right of AE: 异步执行以下流程：<br/>1. 批量挂账<br/>2. 调账减免<br/>3. 账损挂账<br/>4. 预约还款
+            alt 锁定失败
+                S-->>C: 返回锁定失败
+                C-->>T: 提交失败响应
+            else 锁定成功
+                Note over S: 3. 保存还款记录
+                S->>DB: 保存LitigationRepayRecord(bizSerial)
+                activate DB
+                S->>DB: 保存LitigationRepayDetail
+                DB-->>S: recordId
+                deactivate DB
 
-            S-->>C: 返回处理中
-            C-->>T: 提交成功响应(状态=处理中)
+                Note over S: 4. 启动异步处理
+                S->>AE: execute(recordId)
+                activate AE
+                Note right of AE: 异步执行以下流程：<br/>1. 批量挂账<br/>2. 调账减免<br/>3. 账损挂账<br/>4. 预约还款
+
+                S-->>C: 返回处理中
+                C-->>T: 提交成功响应(状态=处理中)
+            end
         end
     end
 
@@ -775,15 +1459,29 @@ sequenceDiagram
 **业务场景**：Themis系统提交法诉自动入账请求
 
 **流程说明**：
+0. **幂等校验**：根据 `bizSerial` 查询是否已存在处理记录
+   - 若存在且状态为 `PROCESSING`，返回勿重复提交
+   - 若存在且状态为 `SUCCESS`/`PART_SUCCESS`，返回原处理结果
+   - 若不存在，继续执行后续流程
 1. **再次校验**：复用预校验模块的所有校验逻辑
 2. **锁定订单账务**：调用loancore的`/accounting/apply`接口锁定
-3. **保存还款记录**：写入法诉还款记录表和详情表
+3. **保存还款记录**：写入法诉还款记录表和详情表（包含bizSerial）
 4. **启动异步处理**：触发异步执行器，处理后续流程
 
+**幂等控制设计**：
+- **业务流水号**：由调用方生成，格式 `LRR{yyyyMMddHHmmss}{操作人工号}{4位随机数}`
+- **数据库约束**：`litigation_repay_record` 表的 `biz_serial` 字段有唯一索引
+- **幂等响应**：
+  - 处理中的重复请求：返回 `400100` 错误码，提示勿重复提交
+  - 已完成的重复请求：返回原成功结果，确保接口幂等性
+- **并发处理**：利用数据库唯一索引保证并发场景下的幂等性
+
 **注意点**：
+- 幂等校验在所有业务逻辑之前执行，快速响应重复请求
 - 再次校验确保数据未被修改
 - 锁定失败则直接返回，不启动异步流程
 - 异步处理在后台执行，前端显示"处理中"状态
+- 失败的请求需要使用新的 bizSerial 重新提交
 
 ### 接口详细设计（必填）
 
@@ -808,32 +1506,44 @@ sequenceDiagram
 
 | 参数名 | 类型 | 长度 | 必输 | 说明 |
 |--------|------|------|------|------|
+| bizSerial | String | 64 | Y | 业务流水号，由调用方生成，用于幂等控制 |
 | operator | String | 50 | Y | 操作人工号 |
 | receiveCardNo | String | 50 | Y | 收款卡号 |
+| maxLossRate | BigDecimal | - | Y | 账损最大比例，范围(0, 1)，如0.5表示50% |
 | litigationOrders | List<Object> | 100 | Y | 法诉订单列表，最多100个 |
 | litigationOrders[].bankSerial | String | 64 | Y | 银行流水号 |
 | litigationOrders[].orderNo | String | 50 | Y | 订单号 |
 | litigationOrders[].repayAmount | Integer | - | Y | 还款金额（分） |
+| litigationOrders[].isClear | Boolean | - | C | 结清标记，还款金额等于未还金额时必须为true |
 | litigationOrders[].adjustAmount | Integer | - | N | 调减金额（分） |
 | litigationOrders[].lossAmount | Integer | - | N | 账损金额（分） |
+
+**业务流水号生成规则**：
+- 格式：`LRR{yyyyMMddHHmmss}{操作人工号}{4位随机数}`
+- 示例：`LRR20250225143030admin1234`
+- 要求：调用方保证唯一性，建议使用UUID或类似机制
 
 **Request Body样例**：
 ```json
 {
+  "bizSerial": "LRR20250225143030admin1234",
   "operator": "admin",
   "receiveCardNo": "6222021234567890",
+  "maxLossRate": 0.5,
   "litigationOrders": [
     {
       "bankSerial": "BF202502250001",
       "orderNo": "O001",
       "repayAmount": 3000000,
+      "isClear": false,
       "adjustAmount": 1000000,
       "lossAmount": 1000000
     },
     {
       "bankSerial": "BF202502250001",
       "orderNo": "O002",
-      "repayAmount": 2000000,
+      "repayAmount": 5000000,
+      "isClear": true,
       "adjustAmount": 0,
       "lossAmount": 0
     }
@@ -875,6 +1585,38 @@ sequenceDiagram
 **接口评估**：
 
 - **预估最高QPS**：20 QPS，中等RequestBody
+- **幂等控制设计**：
+  - 通过 `bizSerial` 业务流水号实现接口幂等性
+  - 数据库层面通过 `uk_biz_srl` 唯一索引保证
+  - 幂等处理逻辑：
+    1. 接口收到请求后，首先根据 `bizSerial` 查询 `litigation_repay_record` 表
+    2. 若记录存在，根据当前状态返回：
+       - `SUCCESS`/`PART_SUCCESS`：返回原成功结果，避免重复处理
+       - `PROCESSING`：返回处理中，提示勿重复提交
+       - `FAILED`/`INIT_ABORT`：允许重新提交（新增记录，使用新bizSerial）
+    3. 若记录不存在，正常执行提交流程
+  - 幂等响应样例：
+    ```json
+    {
+      "code": "000000",
+      "message": "提交成功",
+      "data": {
+        "recordId": "LRR202502250001",
+        "status": "SUCCESS"
+      }
+    }
+    ```
+  - 幂等冲突响应（重复提交处理中）：
+    ```json
+    {
+      "code": "400100",
+      "message": "请求正在处理中，请勿重复提交",
+      "data": {
+        "recordId": "LRR202502250001",
+        "status": "PROCESSING"
+      }
+    }
+    ```
 - **熔断和限流设计**：
   - 使用Sentinel进行接口限流，QPS阈值设为30
   - 降级方案：loancore不可用时，返回锁定失败
@@ -1123,7 +1865,7 @@ classDiagram
         +unlockOrder(String orderNo) void
         +executeReserveRepayAsync(String reserveId) void
         +matchFlowAndRepay(String reserveId) RepayResult
-        +buildLitigationExtInfo(String bizSerial, String orderNo) Map~String,Object~
+        +buildLitigationExtInfo(String bizSerial) Map~String,Object~
     }
 
     class RepayEngineClient {
@@ -1137,33 +1879,6 @@ classDiagram
         -Map~String,Object~ extInfo
         +setExtInfo(String key, Object value) void
         +getExtInfo() Map~String,Object~
-        +getLitigationFlag() Boolean
-    }
-
-    class FeeCalculatorClient {
-        +trialCalculate(FeecalculatorTrialRequest) TrialResult
-    }
-
-    class FeecalculatorTrialRequest {
-        -String orderNo
-        -Integer repayAmount
-        -Boolean litigationFlag
-        -String litigationBizSerial
-        +setLitigationFlag(Boolean) void
-        +setLitigationBizSerial(String) void
-    }
-
-    class LoanCoreClient {
-        +accounting(LoancoreAccountRequest) AccountResult
-    }
-
-    class LoancoreAccountRequest {
-        -String orderNo
-        -Integer repayAmount
-        -Boolean litigationFlag
-        -String litigationBizSerial
-        +setLitigationFlag(Boolean) void
-        +setLitigationBizSerial(String) void
     }
 
     class ResultNotificationService {
@@ -1378,6 +2093,12 @@ sequenceDiagram
 - 调账和还款可能部分失败，需记录详细失败原因
 - 最终状态可能是：全部成功、部分成功、全部失败
 - 订单级并发处理需注意线程安全和事务隔离
+- **异步流程幂等控制**：
+  - 每个子流程（批量挂账、调账、账损、预约还款）执行前，先查询 `litigation_repay_detail` 表中的处理状态
+  - 已成功处理的订单跳过，避免重复操作
+  - 处理失败的订单支持重试，但需记录重试次数
+  - 使用 `recordId` + `processStage` 作为幂等键标识每个子流程的执行状态
+  - 例如：批量挂账阶段的幂等键为 `{recordId}_CHARGE_UP`，调账阶段为 `{recordId}_ADJUST`
 
 #### 法诉标识传递设计
 
@@ -1742,7 +2463,7 @@ flowchart LR
 
 | 调度任务名称 | 应用名 | 并发数 | 执行周期 | JobExecutorClass | 调度任务说明 |
 |--------------|--------|--------|----------|------------------|--------------|
-| 银行流水同步任务 | ao-service | 最大全局并发数：1<br>最大单节点并发数：1 | trgger：CRON=0 0/10 * * * ? | cn.caijj.ao.job.BankFlowSyncJob.class | 定时从payment系统获取银行流水并保存到AO系统，支持指定银行账户和挂账标识过滤 |
+| 银行流水同步任务 | ao-service | 最大全局并发数：1<br>最大单节点并发数：1 | CRON=0 0/30 * * * ? | cn.caijj.ao.job.BankFlowSyncJob.class | 每30分钟从payment系统获取指定银行对公账户的银行流水，保存到bank_trans_flow_info表。指定对公账户从配置litigation.litigation_account_list读取 |
 
 #### 调度任务流程图
 
@@ -1750,25 +2471,39 @@ flowchart LR
 flowchart TD
     Start([定时任务启动]) --> CheckConfig{检查配置}
     CheckConfig -->|未配置| End1([结束])
-    CheckConfig -->|已配置| GetConfig[获取任务配置]
+    CheckConfig -->|已配置| GetAccount[读取指定对公账户配置]
 
-    GetConfig --> CallPayment[调用payment系统]
+    GetAccount --> CallPayment[调用payment系统获取流水]
     CallPayment -->|调用成功| Parse[解析流水数据]
     CallPayment -->|调用失败| LogError[记录错误日志]
     LogError --> End2([结束])
 
     Parse --> Filter[过滤已存在流水]
-    Filter --> BatchSave[批量保存流水]
+    Filter --> BatchSave[批量保存到bank_trans_flow_info表]
     BatchSave --> InitStatus[初始化流水状态]
 
     InitStatus --> LogSuccess[记录成功日志]
     LogSuccess --> End3([结束])
 
     style Start fill:#FFF9C4
+    style GetAccount fill:#E3F2FD
     style CallPayment fill:#E1F5FE
     style BatchSave fill:#C8E6C9
     style LogError fill:#FFCDD2
 ```
+
+#### 调度任务说明
+
+**任务目的**：定时从payment系统获取法诉指定对公账户的银行流水，保存到`bank_trans_flow_info`表，供法诉自动入账流程使用。
+
+**执行逻辑**：
+1. 从配置`litigation.litigation_account_list`读取指定的法诉对公账户列表
+2. 调用payment系统接口获取这些账户的银行流水
+3. 解析并过滤已存在的流水（避免重复保存）
+4. 批量保存新流水到`bank_trans_flow_info`表
+5. 初始化流水状态为可用
+
+**配置依赖**：依赖配置项`litigation.litigation_account_list`（法诉指定收款账户列表）
 
 ---
 
@@ -1776,21 +2511,24 @@ flowchart TD
 
 ### 业务配置项
 
-| 配置编码 | 配置值 | 说明 | 配置来源 |
-|----------|--------|------|----------|
-| litigation.litigation_account_list | 6222021234567890,6222021234567891 | 法诉指定收款账户列表，支持多个 | 页面配置 |
-| litigation.enable_auto_repay | true | 法诉自动入账功能开关 | 页面配置 |
-| litigation.bpm_timeout_minutes | 30 | BPM审核超时时间（分钟） | 页面配置 |
-| litigation.adjust_retry_times | 3 | 调账失败重试次数 | 接口配置 |
-| litigation.reserve_repay_timeout_seconds | 300 | 预约还款超时时间（秒） | 接口配置 |
-| litigation.batch_charge_up_size | 100 | 批量挂账批次大小 | 接口配置 |
+| 配置编码                                     | 配置值                               | 说明                                              | 配置来源 |
+| ---------------------------------------- | --------------------------------- | ----------------------------------------------- | ---- |
+| litigation.litigation_account_list       | 6222021234567890,6222021234567891 | 法诉指定收款账户列表，支持多个。用于：1）校验收款账户；2）调度任务定时获取这些账户的银行流水 | 页面配置 |
+| litigation.enable_auto_repay             | true                              | 法诉自动入账功能开关                                      | 页面配置 |
+| litigation.bpm_timeout_minutes           | 30                                | BPM审核超时时间（分钟）                                   | 页面配置 |
+| litigation.adjust_retry_times            | 3                                 | 调账失败重试次数                                        | 接口配置 |
+| litigation.reserve_repay_timeout_seconds | 300                               | 预约还款超时时间（秒）                                     | 接口配置 |
+| litigation.batch_charge_up_size          | 100                               | 批量挂账批次大小                                        | 接口配置 |
 
 **配置项说明**：
 
 1. **litigation.litigation_account_list**
-   - **必要性**：用于校验收款账户是否为法诉指定账户
+   - **必要性**：
+     - 用于校验收款账户是否为法诉指定账户
+     - 调度任务读取此配置，定时获取这些账户的银行流水
    - **可维护性**：账户列表清晰，用逗号分隔
    - **稳定性**：账户信息变更频率低，由财务部门发起变更
+   - **关联模块**：预校验模块、调度任务模块
 
 2. **litigation.enable_auto_repay**
    - **必要性**：功能开关，用于紧急情况下关闭法诉自动入账
@@ -1949,6 +2687,54 @@ CREATE TABLE `litigation_repay_detail` (
 
 **表数据增量情况评估**：
 - 每天预计增加2000-5000行数据（一个还款记录包含多个订单）
+
+**表3：诉讼标打标记录表（litigation_tag_record）**
+
+```sql
+CREATE TABLE `litigation_tag_record` (
+    `id` bigint(20) NOT NULL auto_increment COMMENT '主键ID',
+    `order_no` varchar(64) NOT NULL COMMENT '订单号',
+    `uid` varchar(64) NOT NULL COMMENT '用户标识',
+    `tag_time` datetime NOT NULL COMMENT '打标时间',
+    `unpaid_principal` int(11) NOT NULL COMMENT '打标时未还本金(单位:分)',
+    `unpaid_amount` int(11) NOT NULL COMMENT '打标时未还总金额(单位:分)',
+    `tag_operator` varchar(64) NULL COMMENT '打标操作人',
+    `ext_info` json NULL COMMENT '扩展信息',
+    `created_by` varchar(64) NULL COMMENT '创建人',
+    `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `updated_by` varchar(64) NULL COMMENT '更新人',
+    `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_order_no` (`order_no`) USING BTREE,
+    KEY `idx_uid` (`uid`) USING BTREE,
+    KEY `idx_tag_time` (`tag_time`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=1 CHARSET=utf8mb4 COMMENT='诉讼标打标记录表';
+```
+
+**字段说明**：
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| id | BIGINT | 主键ID，自增 |
+| order_no | VARCHAR(64) | 订单号，唯一标识 |
+| uid | VARCHAR(64) | 用户标识 |
+| tag_time | DATETIME | 打标时间 |
+| unpaid_principal | INT | 打标时未还本金（单位：分），用于账损率计算 |
+| unpaid_amount | INT | 打标时未还总金额（单位：分） |
+| tag_operator | VARCHAR(64) | 打标操作人 |
+| ext_info | JSON | 扩展信息 |
+| created_by | VARCHAR(64) | 创建人 |
+| created_at | DATETIME | 创建时间 |
+| updated_by | VARCHAR(64) | 更新人 |
+| updated_at | DATETIME | 更新时间 |
+
+**索引说明**：
+- `uk_order_no`：订单号唯一索引，每个订单只有一条有效打标记录
+- `idx_uid`：用户标识索引，用于查询用户所有诉讼标订单
+- `idx_tag_time`：打标时间索引，用于按时间范围查询
+
+**表数据增量情况评估**：
+- 每天预计增加100-300行数据（新增诉讼标订单数量）
 
 #### 已有表（需适配）
 

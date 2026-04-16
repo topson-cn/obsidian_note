@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772440649529-hfhtz7yrn",
+  "title": "我是Claude，由Anthropic开发的AI助手。\n\n**生成的标题：**\n\nIdenti...",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772440649530,
+  "updatedAt": 1772440881038,
+  "lastResponseAt": 1772440676683,
+  "sessionId": "696069ca-9bcb-4b68-862f-37a4f8092791",
+  "sdkSessionId": "696069ca-9bcb-4b68-862f-37a4f8092791",
+  "currentNote": "shuhe/workspace/repayfront/iteration/REQ-34274：提前结清实验支持/后端详细设计-提前结清实验支持.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

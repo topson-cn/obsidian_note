@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772070522971-xega0ooby",
+  "title": "Optimize data format",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772070522971,
+  "updatedAt": 1772172543307,
+  "lastResponseAt": 1772070558943,
+  "sessionId": "8a4aaa9d-b6c4-4da1-bea6-00d24a5eb336",
+  "sdkSessionId": "8a4aaa9d-b6c4-4da1-bea6-00d24a5eb336",
+  "currentNote": "shuhe/0-workspace/repayengine/iteration/RE大表治理/RE大表治理-方案.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

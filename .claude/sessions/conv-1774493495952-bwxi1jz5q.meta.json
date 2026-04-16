@@ -1,0 +1,19 @@
+{
+  "id": "conv-1774493495952-bwxi1jz5q",
+  "title": "读取Wiki页面并保存产品需求模板",
+  "titleGenerationStatus": "success",
+  "createdAt": 1774493495954,
+  "updatedAt": 1774505209372,
+  "lastResponseAt": 1774494645015,
+  "sessionId": "72591d01-ebeb-4a1b-a16d-65a2e2e8b626",
+  "sdkSessionId": "72591d01-ebeb-4a1b-a16d-65a2e2e8b626",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772433421977-pee8xy20p",
+  "title": "Update backend design for early settlement expe...",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772433421978,
+  "updatedAt": 1772439522721,
+  "lastResponseAt": 1772437854996,
+  "sessionId": "44b2c526-9f27-4c78-8c56-e80656b5a7c7",
+  "sdkSessionId": "44b2c526-9f27-4c78-8c56-e80656b5a7c7",
+  "currentNote": "shuhe/workspace/repayfront/iteration/REQ-34274：提前结清实验支持/后端详细设计-提前结清实验支持.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

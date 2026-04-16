@@ -1,0 +1,20 @@
+{
+  "id": "conv-1776255730359-6iacy5e7x",
+  "title": "Remove duplicate entries",
+  "titleGenerationStatus": "success",
+  "createdAt": 1776255730360,
+  "updatedAt": 1776257952989,
+  "lastResponseAt": 1776257952989,
+  "sessionId": "1a08cd03-34b1-42ee-a45c-c9cdbc68fa65",
+  "sdkSessionId": "1a08cd03-34b1-42ee-a45c-c9cdbc68fa65",
+  "currentNote": "shuhe/workspace/待冲销数据.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 330,
+    "cacheReadInputTokens": 152936,
+    "contextWindow": 200000,
+    "contextTokens": 153267,
+    "percentage": 77
+  }
+}

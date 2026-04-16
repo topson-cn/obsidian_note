@@ -314,8 +314,8 @@ WHERE reserve_no = #{reserveNo};
 - [数据库结构](../../02-数据库结构.md)
 - [接口流程索引](../../03-接口流程索引.md)
 - [业务流索引](../../05-业务流索引.md)
-- [匹配线下预约还款信息任务](./matchOfflineReserveRepayInfoJob.md)
-- [处理线下预约还款流程任务](./handleOfflineReserveRepayProcessJob.md)
+- [匹配线下预约还款信息任务](matchOfflineReserveRepayInfoJob.md)
+- [处理线下预约还款流程任务](handleOfflineReserveRepayProcessJob.md)
 
 ---
 

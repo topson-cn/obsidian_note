@@ -1,0 +1,20 @@
+{
+  "id": "conv-1775527101831-ipog416xp",
+  "title": "Create test SQL schema and data for invoice que...",
+  "titleGenerationStatus": "success",
+  "createdAt": 1775527101831,
+  "updatedAt": 1775790793522,
+  "lastResponseAt": 1775527686476,
+  "sessionId": "fcdf0710-d763-47cd-aab2-13d3d350d9d7",
+  "sdkSessionId": "fcdf0710-d763-47cd-aab2-13d3d350d9d7",
+  "currentNote": "shuhe/workspace/accountingoperation/iteration/202503-开票信息查询/v_invoice_query_joint_loan_term_repayment_detail_v2.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 6345,
+    "cacheReadInputTokens": 80716,
+    "contextWindow": 200000,
+    "contextTokens": 87062,
+    "percentage": 44
+  }
+}

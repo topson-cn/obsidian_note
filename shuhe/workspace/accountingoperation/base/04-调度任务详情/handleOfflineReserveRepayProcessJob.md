@@ -393,7 +393,7 @@ stateDiagram-v2
 - [接口流程索引](../../03-接口流程索引.md)
 - [业务流索引](../../05-业务流索引.md)
 - [线下还款业务流程详情](../../05-业务流详情/offline_reserve_repay_process.md)
-- [匹配线下预约还款信息任务](./matchOfflineReserveRepayInfoJob.md)
+- [匹配线下预约还款信息任务](matchOfflineReserveRepayInfoJob.md)
 
 ---
 

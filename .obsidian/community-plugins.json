@@ -1,5 +1,7 @@
 [
   "claudian",
   "obsidian-plantuml",
-  "github-sync"
+  "github-sync",
+  "mehrmaid",
+  "diagram-zoom-drag"
 ]

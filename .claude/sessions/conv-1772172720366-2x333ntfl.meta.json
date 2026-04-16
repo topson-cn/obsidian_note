@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772172720366-2x333ntfl",
+  "title": "Design scheduled task for bank transaction flow...",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772172720367,
+  "updatedAt": 1772433322767,
+  "lastResponseAt": 1772177810782,
+  "sessionId": "667bb362-e29f-4265-bd9d-1d8043d512d0",
+  "sdkSessionId": "667bb362-e29f-4265-bd9d-1d8043d512d0",
+  "currentNote": "shuhe/workspace/accountingoperation/iteration/202502-法诉自动入账/功能模块清单.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

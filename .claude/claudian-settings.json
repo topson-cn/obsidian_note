@@ -40,7 +40,7 @@
   },
   "permissionMode": "yolo",
   "model": "opus",
-  "thinkingBudget": "medium",
+  "thinkingBudget": "low",
   "enableAutoTitleGeneration": true,
   "titleGenerationModel": "",
   "show1MModel": false,
@@ -53,7 +53,7 @@
     "~/Desktop",
     "~/Downloads"
   ],
-  "persistentExternalContextPaths": [],
+  "persistentExternalContextPaths": ["~/Documents/workspace_v2"],
   "environmentVariables": "",
   "envSnippets": [],
   "customContextLimits": {},

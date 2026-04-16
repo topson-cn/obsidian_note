@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772180955005-ksjvnl1fl",
+  "title": "Update pre-validation module rules for orders",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772180955005,
+  "updatedAt": 1772182330514,
+  "lastResponseAt": 1772182199375,
+  "sessionId": "624e9b97-b1b1-4fb1-b25d-2f116a876e0b",
+  "sdkSessionId": "624e9b97-b1b1-4fb1-b25d-2f116a876e0b",
+  "currentNote": "shuhe/0-workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

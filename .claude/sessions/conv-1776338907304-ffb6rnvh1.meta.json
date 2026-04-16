@@ -1,0 +1,20 @@
+{
+  "id": "conv-1776338907304-ffb6rnvh1",
+  "title": "分析接口文档并整理业务模式",
+  "titleGenerationStatus": "success",
+  "createdAt": 1776338907304,
+  "updatedAt": 1776339164616,
+  "lastResponseAt": 1776339164616,
+  "sessionId": "f354f88c-834d-45f8-a497-069f3f26f814",
+  "sdkSessionId": "f354f88c-834d-45f8-a497-069f3f26f814",
+  "currentNote": "shuhe/workspace/repayengine/base/bizflow/重资产分期制还款同步流程V401.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 1041,
+    "cacheReadInputTokens": 94644,
+    "contextWindow": 200000,
+    "contextTokens": 95686,
+    "percentage": 48
+  }
+}

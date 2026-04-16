@@ -1,0 +1,19 @@
+{
+  "id": "conv-1773999779524-gbynddvdo",
+  "title": "查询轻资产还款资金预还接口调用节点",
+  "titleGenerationStatus": "success",
+  "createdAt": 1773999779533,
+  "updatedAt": 1774493351268,
+  "lastResponseAt": 1773999873911,
+  "sessionId": "bf0514a0-0b7c-406e-9c0c-98a22ef4e2ba",
+  "sdkSessionId": "bf0514a0-0b7c-406e-9c0c-98a22ef4e2ba",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 51828,
+    "cacheReadInputTokens": 13764,
+    "contextWindow": 200000,
+    "contextTokens": 65593,
+    "percentage": 33
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "conv-1775791576456-zs0ho458o",
+  "title": "Create Bizflow Documentation Structure",
+  "titleGenerationStatus": "success",
+  "createdAt": 1775791576456,
+  "updatedAt": 1775792460950,
+  "lastResponseAt": 1775792370497,
+  "sessionId": "d3cc52d2-7bf6-49a1-94bf-21bc3dc330bb",
+  "sdkSessionId": "d3cc52d2-7bf6-49a1-94bf-21bc3dc330bb",
+  "currentNote": "shuhe/workspace/skills/bizflow-doc-gen.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 582,
+    "cacheReadInputTokens": 102389,
+    "contextWindow": 200000,
+    "contextTokens": 102972,
+    "percentage": 51
+  }
+}

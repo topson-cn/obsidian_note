@@ -1,0 +1,20 @@
+{
+  "id": "conv-1774523111924-nn5bjygtj",
+  "title": "按Figma设计指南生成设计稿",
+  "titleGenerationStatus": "success",
+  "createdAt": 1774523111925,
+  "updatedAt": 1774842338190,
+  "lastResponseAt": 1774523380263,
+  "sessionId": "3b2008d6-c1e3-44e6-bc73-27df80626183",
+  "sdkSessionId": "3b2008d6-c1e3-44e6-bc73-27df80626183",
+  "currentNote": "Figma 设计稿构建指南.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 194,
+    "cacheReadInputTokens": 83418,
+    "contextWindow": 200000,
+    "contextTokens": 83613,
+    "percentage": 42
+  }
+}

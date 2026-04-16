@@ -63,8 +63,8 @@ flowchart TD
 
 ## 相关文档
 
-- [人工扣款提交流程](./manualDeductSubmitFlow.md)
-- [还享花试算流程](./enjoyManualDeductionTrail.md)
+- [人工扣款提交流程](manualDeductSubmitFlow.md)
+- [还享花试算流程](enjoyManualDeductionTrail.md)
 
 ---
 

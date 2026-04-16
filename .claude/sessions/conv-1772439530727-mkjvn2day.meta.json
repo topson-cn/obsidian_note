@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772439530727-mkjvn2day",
+  "title": "同步Markdown文件到Confluence页面",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772439530728,
+  "updatedAt": 1772440385451,
+  "lastResponseAt": 1772439556060,
+  "sessionId": "f39cebee-0fb3-449c-a6a7-4f61102d027a",
+  "sdkSessionId": "f39cebee-0fb3-449c-a6a7-4f61102d027a",
+  "currentNote": "shuhe/workspace/repayfront/iteration/REQ-34274：提前结清实验支持/后端详细设计-提前结清实验支持.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "id": "conv-1775792439148-72870lbl9",
+  "title": "Create business flow documentation for sold_rep...",
+  "titleGenerationStatus": "success",
+  "createdAt": 1775792439148,
+  "updatedAt": 1776255717936,
+  "lastResponseAt": 1775792605061,
+  "sessionId": "d1a05fb3-cf9e-42fa-adf1-c088373a5949",
+  "sdkSessionId": "d1a05fb3-cf9e-42fa-adf1-c088373a5949",
+  "currentNote": "shuhe/workspace/初始化bizflow.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 422,
+    "cacheReadInputTokens": 84753,
+    "contextWindow": 200000,
+    "contextTokens": 85176,
+    "percentage": 43
+  }
+}

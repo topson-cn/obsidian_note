@@ -1,0 +1,19 @@
+{
+  "id": "conv-1775793071665-ehnb1as1p",
+  "title": "接口文档格式规范",
+  "titleGenerationStatus": "success",
+  "createdAt": 1775793071666,
+  "updatedAt": 1776255713247,
+  "lastResponseAt": 1775793641548,
+  "sessionId": "bbe6c075-0dc5-4d9c-acac-7aea3307c2a6",
+  "sdkSessionId": "bbe6c075-0dc5-4d9c-acac-7aea3307c2a6",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 3399,
+    "cacheReadInputTokens": 77737,
+    "contextWindow": 200000,
+    "contextTokens": 81137,
+    "percentage": 41
+  }
+}

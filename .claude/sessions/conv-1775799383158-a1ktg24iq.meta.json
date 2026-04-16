@@ -1,0 +1,20 @@
+{
+  "id": "conv-1775799383158-a1ktg24iq",
+  "title": "Generate API documentation for repayengine",
+  "titleGenerationStatus": "success",
+  "createdAt": 1775799383159,
+  "updatedAt": 1776255711433,
+  "lastResponseAt": 1775799920590,
+  "sessionId": "7d25fc15-e27d-4634-b6b2-a901eb2117cb",
+  "sdkSessionId": "7d25fc15-e27d-4634-b6b2-a901eb2117cb",
+  "currentNote": "shuhe/workspace/skills/api-doc-gen.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 1,
+    "cacheCreationInputTokens": 1715,
+    "cacheReadInputTokens": 91682,
+    "contextWindow": 200000,
+    "contextTokens": 93398,
+    "percentage": 47
+  }
+}

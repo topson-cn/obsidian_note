@@ -1,0 +1,20 @@
+{
+  "id": "conv-1775118828794-n61zxaoc6",
+  "title": "Analyze BPM workflow exception in startWorkOrde...",
+  "titleGenerationStatus": "success",
+  "createdAt": 1775118828795,
+  "updatedAt": 1775527020469,
+  "lastResponseAt": 1775119333915,
+  "sessionId": "76d285e7-291b-463a-a031-2588f960f06f",
+  "sdkSessionId": "76d285e7-291b-463a-a031-2588f960f06f",
+  "currentNote": "shuhe/workspace/accountingoperation/base/06-核心流程详情/工单调账核心流程.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 3,
+    "cacheCreationInputTokens": 2131,
+    "cacheReadInputTokens": 86647,
+    "contextWindow": 200000,
+    "contextTokens": 88781,
+    "percentage": 44
+  }
+}

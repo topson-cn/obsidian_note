@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772177929935-x7mb1rq5q",
+  "title": "Query bank transaction flow by serial number",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772177929936,
+  "updatedAt": 1772180896962,
+  "lastResponseAt": 1772180837456,
+  "sessionId": "11f96d65-4348-4183-a085-5334d83c2668",
+  "sdkSessionId": "11f96d65-4348-4183-a085-5334d83c2668",
+  "currentNote": "shuhe/0-workspace/accountingoperation/iteration/202502-法诉自动入账/详细设计-AO系统.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

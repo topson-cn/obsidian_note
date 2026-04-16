@@ -1,0 +1,20 @@
+{
+  "id": "conv-1772440462433-eio9fcnuy",
+  "title": "Update backend design document for early repaym...",
+  "titleGenerationStatus": "success",
+  "createdAt": 1772440462433,
+  "updatedAt": 1773996417769,
+  "lastResponseAt": 1772441994495,
+  "sessionId": "93b027f1-2702-4a54-87c9-f6c11532acbc",
+  "sdkSessionId": "93b027f1-2702-4a54-87c9-f6c11532acbc",
+  "currentNote": "shuhe/workspace/repayfront/iteration/REQ-34274：提前结清实验支持/后端详细设计-提前结清实验支持.md",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 0,
+    "cacheCreationInputTokens": 0,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 0,
+    "percentage": 0
+  }
+}

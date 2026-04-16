@@ -1,0 +1,1583 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>华展云 - 让你更出成绩</title>
+<style>
+  /* ===== Design Tokens ===== */
+  :root {
+    --color-primary: #0066FF;
+    --color-primary-dark: #0052CC;
+    --color-primary-light: #E6F0FF;
+    --color-accent: #FF9900;
+    --color-accent-dark: #E68A00;
+    --color-bg: #F5F5F5;
+    --color-bg-dark: #0A1628;
+    --color-text: #333333;
+    --color-text-light: #666666;
+    --color-text-muted: #999999;
+    --color-white: #FFFFFF;
+    --color-border: #E0E0E0;
+
+    --font-cn: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', sans-serif;
+    --font-en: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
+    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+    --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.15);
+
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 24px;
+
+    --container-width: 1200px;
+    --header-height: 72px;
+  }
+
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; font-size: 16px; }
+  body {
+    font-family: var(--font-cn);
+    color: var(--color-text);
+    background: var(--color-white);
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+  img { max-width: 100%; display: block; }
+  a { text-decoration: none; color: inherit; }
+  ul { list-style: none; }
+
+  .container {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 40px;
+  }
+
+  /* ===== Header 导航栏 ===== */
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: var(--header-height);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+    z-index: 1000;
+    transition: box-shadow 0.3s;
+  }
+  .header.scrolled { box-shadow: var(--shadow-sm); }
+  .header .container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+  }
+  .logo {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--color-primary);
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--color-primary), #3399FF);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .nav { display: flex; align-items: center; gap: 36px; }
+  .nav a {
+    font-size: 15px;
+    color: var(--color-text-light);
+    transition: color 0.2s;
+    font-weight: 500;
+  }
+  .nav a:hover { color: var(--color-primary); }
+  .nav-actions { display: flex; align-items: center; gap: 16px; }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    font-family: var(--font-cn);
+  }
+  .btn-primary {
+    background: var(--color-primary);
+    color: var(--color-white);
+  }
+  .btn-primary:hover {
+    background: var(--color-primary-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+  }
+  .btn-outline {
+    background: transparent;
+    border: 1.5px solid var(--color-border);
+    color: var(--color-text);
+  }
+  .btn-outline:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+  .btn-accent {
+    background: var(--color-accent);
+    color: var(--color-white);
+  }
+  .btn-accent:hover {
+    background: var(--color-accent-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+  }
+  .btn-lg { padding: 14px 36px; font-size: 17px; border-radius: 10px; }
+  .btn-sm { padding: 8px 18px; font-size: 13px; }
+  .btn-icon { font-size: 18px; }
+
+  /* ===== Section Common ===== */
+  .section { padding: 100px 0; }
+  .section-title {
+    font-size: 40px;
+    font-weight: 900;
+    line-height: 1.3;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+  .section-subtitle {
+    font-size: 18px;
+    color: var(--color-text-light);
+    line-height: 1.7;
+    max-width: 600px;
+  }
+  .section-header {
+    text-align: center;
+    margin-bottom: 64px;
+  }
+  .section-header .section-subtitle {
+    margin: 0 auto;
+  }
+  .section-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 16px;
+    background: var(--color-primary-light);
+    color: var(--color-primary);
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  /* ===== Section 1: Hero 大屏 ===== */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, #F8FBFF 0%, #EDF4FF 50%, #F0F7FF 100%);
+    padding-top: var(--header-height);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -200px;
+    right: -200px;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(0, 102, 255, 0.06) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -100px;
+    left: -100px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255, 153, 0, 0.04) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+  .hero .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-content { max-width: 540px; }
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 18px;
+    background: rgba(0, 102, 255, 0.08);
+    border: 1px solid rgba(0, 102, 255, 0.15);
+    border-radius: 24px;
+    font-size: 14px;
+    color: var(--color-primary);
+    font-weight: 500;
+    margin-bottom: 28px;
+  }
+  .hero-badge::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.2); }
+  }
+  .hero h1 {
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 1.2;
+    margin-bottom: 20px;
+    letter-spacing: -1px;
+  }
+  .hero h1 .highlight {
+    background: linear-gradient(135deg, var(--color-primary), #3399FF);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero p {
+    font-size: 18px;
+    color: var(--color-text-light);
+    line-height: 1.8;
+    margin-bottom: 36px;
+  }
+  .hero-actions { display: flex; gap: 16px; align-items: center; }
+  .hero-stats {
+    display: flex;
+    gap: 40px;
+    margin-top: 48px;
+    padding-top: 32px;
+    border-top: 1px solid var(--color-border);
+  }
+  .hero-stat-number {
+    font-size: 32px;
+    font-weight: 900;
+    color: var(--color-primary);
+    font-family: var(--font-en);
+  }
+  .hero-stat-label {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+  }
+  .hero-visual {
+    position: relative;
+  }
+  .hero-dashboard {
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-xl);
+    padding: 24px;
+    position: relative;
+  }
+  .dashboard-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .dashboard-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  .dashboard-dot.red { background: #FF5F57; }
+  .dashboard-dot.yellow { background: #FEBC2E; }
+  .dashboard-dot.green { background: #28C840; }
+  .dashboard-title {
+    margin-left: 12px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+  }
+  .dashboard-search {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .dashboard-search-input {
+    flex: 1;
+    height: 40px;
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 0 16px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .dashboard-search-btn {
+    height: 40px;
+    padding: 0 20px;
+    background: var(--color-primary);
+    color: white;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .dashboard-card {
+    background: var(--color-bg);
+    border-radius: var(--radius-sm);
+    padding: 20px;
+  }
+  .dashboard-card-label {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .dashboard-card-value {
+    font-size: 28px;
+    font-weight: 900;
+    font-family: var(--font-en);
+  }
+  .dashboard-card-value.blue { color: var(--color-primary); }
+  .dashboard-card-value.orange { color: var(--color-accent); }
+  .dashboard-card-sub {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: 4px;
+  }
+  .hero-float-card {
+    position: absolute;
+    background: white;
+    border-radius: var(--radius-sm);
+    box-shadow: var(--shadow-md);
+    padding: 14px 18px;
+    animation: float 3s ease-in-out infinite;
+  }
+  .hero-float-card.card-1 {
+    top: -20px;
+    right: -30px;
+    animation-delay: 0s;
+  }
+  .hero-float-card.card-2 {
+    bottom: 40px;
+    left: -40px;
+    animation-delay: 1.5s;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .float-card-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+  }
+  .float-card-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+  .float-card-icon.blue { background: var(--color-primary-light); }
+  .float-card-icon.orange { background: #FFF3E0; }
+  .float-card-number {
+    font-weight: 700;
+    font-family: var(--font-en);
+    color: var(--color-text);
+  }
+
+  /* ===== Section 2: 全球大数据中心 ===== */
+  .data-center {
+    background: var(--color-bg-dark);
+    color: var(--color-white);
+    position: relative;
+    overflow: hidden;
+  }
+  .data-center .section-title { color: var(--color-white); }
+  .data-center .section-subtitle { color: rgba(255,255,255,0.6); }
+  .data-center .section-tag {
+    background: rgba(0, 102, 255, 0.2);
+    color: #66AAFF;
+  }
+  .map-container {
+    position: relative;
+    max-width: 900px;
+    margin: 0 auto 60px;
+    height: 420px;
+  }
+  .map-bg {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background:
+      radial-gradient(circle at 35% 40%, rgba(0, 102, 255, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 65% 55%, rgba(0, 102, 255, 0.05) 0%, transparent 40%);
+  }
+  /* Map grid lines */
+  .map-bg::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+  .map-dot {
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    box-shadow: 0 0 20px rgba(0, 102, 255, 0.5);
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  .map-dot::after {
+    content: '';
+    position: absolute;
+    inset: -6px;
+    border-radius: 50%;
+    border: 2px solid rgba(0, 102, 255, 0.3);
+    animation: ripple 2s infinite;
+  }
+  @keyframes ripple {
+    0% { transform: scale(1); opacity: 1; }
+    100% { transform: scale(2); opacity: 0; }
+  }
+  .map-dot:hover { transform: scale(1.5); }
+  .map-label {
+    position: absolute;
+    font-size: 11px;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+    font-weight: 500;
+    transform: translateX(-50%);
+  }
+  /* City positions (approximate on China map area) */
+  .city-beijing { top: 22%; left: 52%; }
+  .city-shanghai { top: 48%; left: 62%; }
+  .city-guangzhou { top: 68%; left: 52%; }
+  .city-shenzhen { top: 72%; left: 54%; }
+  .city-hongkong { top: 74%; left: 56%; }
+  .city-chongqing { top: 52%; left: 40%; }
+  .city-chengdu { top: 48%; left: 35%; }
+  .city-xiamen { top: 64%; left: 58%; }
+  .city-zhengzhou { top: 38%; left: 48%; }
+
+  .data-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .data-stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: var(--radius-md);
+    padding: 32px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s;
+  }
+  .data-stat-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-4px);
+    border-color: rgba(0, 102, 255, 0.3);
+  }
+  .data-stat-icon {
+    font-size: 36px;
+    margin-bottom: 16px;
+  }
+  .data-stat-value {
+    font-size: 42px;
+    font-weight: 900;
+    font-family: var(--font-en);
+    background: linear-gradient(135deg, #66AAFF, var(--color-primary));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+    display: inline-block;
+  }
+  .data-stat-value .unit {
+    font-size: 18px;
+    -webkit-text-fill-color: rgba(255,255,255,0.5);
+  }
+  .data-stat-label {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  /* Connection lines (decorative) */
+  .map-connection {
+    position: absolute;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,102,255,0.3), transparent);
+    transform-origin: left center;
+  }
+
+  /* ===== Section 3: 参展轨迹 Timeline ===== */
+  .timeline-section { background: var(--color-white); }
+  .timeline-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .timeline-line {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, var(--color-primary-light), var(--color-primary), var(--color-primary-light));
+    transform: translateX(-50%);
+    border-radius: 2px;
+  }
+  .timeline-item {
+    display: flex;
+    gap: 60px;
+    margin-bottom: 48px;
+    position: relative;
+  }
+  .timeline-item:nth-child(odd) { flex-direction: row-reverse; text-align: right; }
+  .timeline-item:nth-child(odd) .timeline-content { align-items: flex-end; }
+  .timeline-dot {
+    position: absolute;
+    left: 50%;
+    top: 20px;
+    transform: translateX(-50%);
+    width: 16px;
+    height: 16px;
+    background: var(--color-primary);
+    border-radius: 50%;
+    border: 4px solid var(--color-white);
+    box-shadow: 0 0 0 3px var(--color-primary-light), var(--shadow-sm);
+    z-index: 2;
+  }
+  .timeline-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+  .timeline-card {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    max-width: 340px;
+    transition: all 0.3s;
+    position: relative;
+  }
+  .timeline-card:hover {
+    box-shadow: var(--shadow-md);
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+  }
+  .timeline-year {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-primary);
+    font-family: var(--font-en);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .timeline-item:nth-child(odd) .timeline-year { justify-content: flex-end; }
+  .timeline-year::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--color-primary);
+    border-radius: 50%;
+  }
+  .timeline-event {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: var(--color-text);
+  }
+  .timeline-booth {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    background: var(--color-primary-light);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--color-primary);
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+  .timeline-contact {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .timeline-item:nth-child(odd) .timeline-contact { justify-content: flex-end; }
+
+  /* ===== Section 4: 多维数据版 Tabs ===== */
+  .tabs-section { background: var(--color-bg); }
+  .tabs-container { max-width: 900px; margin: 0 auto; }
+  .tab-nav {
+    display: flex;
+    gap: 4px;
+    background: var(--color-white);
+    border-radius: var(--radius-md);
+    padding: 6px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 32px;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 14px 20px;
+    border: none;
+    background: transparent;
+    border-radius: var(--radius-sm);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-light);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: var(--font-cn);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  .tab-btn:hover { background: var(--color-bg); }
+  .tab-btn.active {
+    background: var(--color-primary);
+    color: var(--color-white);
+    box-shadow: 0 4px 12px rgba(0, 102, 255, 0.3);
+  }
+  .tab-panels { position: relative; }
+  .tab-panel {
+    display: none;
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 40px;
+    animation: fadeIn 0.3s ease;
+  }
+  .tab-panel.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .tab-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .tab-panel-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+  .tab-panel-icon.blue { background: var(--color-primary-light); }
+  .tab-panel-icon.green { background: #E8F5E9; }
+  .tab-panel-icon.orange { background: #FFF3E0; }
+  .tab-panel-icon.purple { background: #F3E5F5; }
+  .tab-panel h3 {
+    font-size: 22px;
+    font-weight: 700;
+  }
+  .tab-panel-desc {
+    font-size: 16px;
+    color: var(--color-text-light);
+    line-height: 1.8;
+    margin-bottom: 24px;
+  }
+  .tab-panel-preview {
+    background: var(--color-bg);
+    border-radius: var(--radius-sm);
+    padding: 24px;
+    min-height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--color-border);
+  }
+  .preview-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13px;
+  }
+  .preview-table th {
+    background: var(--color-primary);
+    color: white;
+    padding: 10px 16px;
+    text-align: left;
+    font-weight: 600;
+  }
+  .preview-table th:first-child { border-radius: 8px 0 0 0; }
+  .preview-table th:last-child { border-radius: 0 8px 0 0; }
+  .preview-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .preview-table tr:last-child td { border-bottom: none; }
+  .preview-table tr:nth-child(even) td { background: rgba(0,0,0,0.02); }
+
+  /* ===== Section 5: 核心功能矩阵 ===== */
+  .features-section { background: var(--color-white); }
+  .features-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .feature-card {
+    background: var(--color-white);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 36px;
+    transition: all 0.3s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-primary), transparent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .feature-card:hover {
+    box-shadow: var(--shadow-lg);
+    border-color: transparent;
+    transform: translateY(-4px);
+  }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin-bottom: 20px;
+  }
+  .feature-icon.blue { background: var(--color-primary-light); }
+  .feature-icon.orange { background: #FFF3E0; }
+  .feature-icon.green { background: #E8F5E9; }
+  .feature-icon.purple { background: #F3E5F5; }
+  .feature-card h3 {
+    font-size: 20px;
+    font-weight: 700;
+    margin-bottom: 12px;
+  }
+  .feature-card p {
+    font-size: 15px;
+    color: var(--color-text-light);
+    line-height: 1.8;
+  }
+  .feature-detail {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--color-bg);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--color-text-light);
+    line-height: 1.8;
+    border-left: 3px solid var(--color-primary);
+  }
+
+  /* ===== Section 6: 云端呼叫 ===== */
+  .cloud-call {
+    background: linear-gradient(135deg, #F0F7FF 0%, #E6F0FF 100%);
+  }
+  .cloud-call .container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+  .call-features { list-style: none; }
+  .call-features li {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .call-features li:last-child { border-bottom: none; }
+  .call-check {
+    width: 28px;
+    height: 28px;
+    background: #E8F5E9;
+    color: #4CAF50;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .call-feature-title {
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .call-feature-desc {
+    font-size: 14px;
+    color: var(--color-text-light);
+  }
+  .call-visual {
+    position: relative;
+  }
+  .call-flow {
+    background: var(--color-white);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    box-shadow: var(--shadow-lg);
+  }
+  .call-flow-title {
+    font-size: 14px;
+    color: var(--color-text-muted);
+    text-align: center;
+    margin-bottom: 28px;
+    font-weight: 600;
+  }
+  .call-flow-steps {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .call-flow-step {
+    text-align: center;
+    flex: 1;
+  }
+  .call-flow-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    margin: 0 auto 12px;
+  }
+  .call-flow-icon.user-icon { background: var(--color-primary-light); }
+  .call-flow-icon.cloud-icon { background: #E8F5E9; }
+  .call-flow-icon.phone-icon { background: #FFF3E0; }
+  .call-flow-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+  .call-flow-sublabel {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+  }
+  .call-flow-arrow {
+    font-size: 20px;
+    color: var(--color-primary);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .call-flow-arrow-label {
+    font-size: 10px;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+  }
+  .call-badge {
+    position: absolute;
+    top: -12px;
+    right: -12px;
+    background: var(--color-accent);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(255, 153, 0, 0.3);
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    background: var(--color-bg-dark);
+    color: rgba(255, 255, 255, 0.6);
+    padding: 60px 0 30px;
+  }
+  .footer-top {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 48px;
+    margin-bottom: 48px;
+  }
+  .footer-brand p {
+    font-size: 14px;
+    line-height: 1.8;
+    margin-top: 16px;
+    max-width: 300px;
+  }
+  .footer-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-white);
+    margin-bottom: 20px;
+  }
+  .footer-links li { margin-bottom: 12px; }
+  .footer-links a {
+    font-size: 14px;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--color-white); }
+  .footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  .footer-contact {
+    display: flex;
+    gap: 24px;
+  }
+  .footer-contact span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  /* ===== Animations (数字增长动效) ===== */
+  .count-up {
+    display: inline-block;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 1024px) {
+    .hero .container,
+    .cloud-call .container {
+      grid-template-columns: 1fr;
+      gap: 48px;
+    }
+    .hero h1 { font-size: 40px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .footer-top { grid-template-columns: 1fr 1fr; }
+    .data-stats { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== Header 导航栏 ===== -->
+<header class="header" id="header">
+  <div class="container">
+    <a href="#" class="logo">
+      <div class="logo-icon">华</div>
+      华展云
+    </a>
+    <nav class="nav">
+      <a href="#">首页</a>
+      <a href="#">产品</a>
+      <a href="#">解决方案</a>
+      <a href="#">客户案例</a>
+    </nav>
+    <div class="nav-actions">
+      <a href="#" class="btn btn-outline btn-sm">下载客户端</a>
+      <a href="#" class="btn btn-primary btn-sm">登录</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===== Section 1: Hero 大屏 ===== -->
+<section class="hero" id="hero">
+  <div class="container">
+    <div class="hero-content">
+      <div class="hero-badge">🚀 外贸展会大数据平台</div>
+      <h1>
+        庞大的资源体量<br>
+        让你<span class="highlight">更出成绩</span>
+      </h1>
+      <p>一站找齐工作中的所有资源，减少不必要的金钱与时间成本。华展云，用大数据助力您的每一次参展。</p>
+      <div class="hero-actions">
+        <a href="#" class="btn btn-primary btn-lg">
+          <span class="btn-icon">🍎</span> MacOS 下载
+        </a>
+        <a href="#" class="btn btn-outline btn-lg">
+          <span class="btn-icon">💻</span> Windows 下载
+        </a>
+      </div>
+      <div class="hero-stats">
+        <div>
+          <div class="hero-stat-number count-up" data-target="10000">10,000+</div>
+          <div class="hero-stat-label">会刊资源</div>
+        </div>
+        <div>
+          <div class="hero-stat-number count-up" data-target="1000000000">10亿+</div>
+          <div class="hero-stat-label">企业量级</div>
+        </div>
+        <div>
+          <div class="hero-stat-number" style="color: var(--color-accent);">9</div>
+          <div class="hero-stat-label">大数据中心</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hero-visual">
+      <div class="hero-dashboard">
+        <div class="dashboard-header">
+          <div class="dashboard-dot red"></div>
+          <div class="dashboard-dot yellow"></div>
+          <div class="dashboard-dot green"></div>
+          <span class="dashboard-title">华展云 — 会刊检索</span>
+        </div>
+        <div class="dashboard-search">
+          <div class="dashboard-search-input">🔍 搜索会刊、展会、企业...</div>
+          <div class="dashboard-search-btn">搜索</div>
+        </div>
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <div class="dashboard-card-label">会刊总量</div>
+            <div class="dashboard-card-value blue">10,823</div>
+            <div class="dashboard-card-sub">覆盖全球主要展会</div>
+          </div>
+          <div class="dashboard-card">
+            <div class="dashboard-card-label">参展记录</div>
+            <div class="dashboard-card-value orange">17</div>
+            <div class="dashboard-card-sub">企业平均参展次数</div>
+          </div>
+          <div class="dashboard-card">
+            <div class="dashboard-card-label">企业库</div>
+            <div class="dashboard-card-value blue">1,000,000+</div>
+            <div class="dashboard-card-sub">持续更新中</div>
+          </div>
+          <div class="dashboard-card">
+            <div class="dashboard-card-label">联系方式</div>
+            <div class="dashboard-card-value orange">100亿+</div>
+            <div class="dashboard-card-sub">电话 / 邮箱 / 官网</div>
+          </div>
+        </div>
+      </div>
+      <!-- Floating Cards -->
+      <div class="hero-float-card card-1">
+        <div class="float-card-row">
+          <div class="float-card-icon blue">📚</div>
+          <div>
+            <div class="float-card-number">+238</div>
+            <div style="font-size:11px;color:var(--color-text-muted);">本周新增会刊</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-float-card card-2">
+        <div class="float-card-row">
+          <div class="float-card-icon orange">📈</div>
+          <div>
+            <div class="float-card-number">98.6%</div>
+            <div style="font-size:11px;color:var(--color-text-muted);">数据准确率</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Section 2: 全球大数据中心 ===== -->
+<section class="section data-center" id="data-center">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">🌍 覆盖全国</div>
+      <h2 class="section-title">全球大数据中心</h2>
+      <p class="section-subtitle">9 大数据处理中心，覆盖北京、上海、广州、深圳、香港、重庆、成都、厦门、郑州</p>
+    </div>
+
+    <div class="map-container">
+      <div class="map-bg">
+        <!-- City Dots -->
+        <div class="map-dot city-beijing" title="北京"></div>
+        <div class="map-label" style="top:17%;left:52%;">北京</div>
+
+        <div class="map-dot city-shanghai" title="上海"></div>
+        <div class="map-label" style="top:43%;left:62%;">上海</div>
+
+        <div class="map-dot city-guangzhou" title="广州"></div>
+        <div class="map-label" style="top:63%;left:49%;">广州</div>
+
+        <div class="map-dot city-shenzhen" title="深圳"></div>
+        <div class="map-label" style="top:70%;left:55%;">深圳</div>
+
+        <div class="map-dot city-hongkong" title="香港"></div>
+        <div class="map-label" style="top:76%;left:58%;">香港</div>
+
+        <div class="map-dot city-chongqing" title="重庆"></div>
+        <div class="map-label" style="top:47%;left:38%;">重庆</div>
+
+        <div class="map-dot city-chengdu" title="成都"></div>
+        <div class="map-label" style="top:45%;left:32%;">成都</div>
+
+        <div class="map-dot city-xiamen" title="厦门"></div>
+        <div class="map-label" style="top:62%;left:60%;">厦门</div>
+
+        <div class="map-dot city-zhengzhou" title="郑州"></div>
+        <div class="map-label" style="top:33%;left:46%;">郑州</div>
+      </div>
+    </div>
+
+    <div class="data-stats">
+      <div class="data-stat-card">
+        <div class="data-stat-icon">📚</div>
+        <div class="data-stat-value">10,000<span class="unit">+</span></div>
+        <div class="data-stat-label">本会刊资源</div>
+      </div>
+      <div class="data-stat-card">
+        <div class="data-stat-icon">🏢</div>
+        <div class="data-stat-value">10亿<span class="unit">+</span></div>
+        <div class="data-stat-label">家企业信息</div>
+      </div>
+      <div class="data-stat-card">
+        <div class="data-stat-icon">📞</div>
+        <div class="data-stat-value">100亿<span class="unit">+</span></div>
+        <div class="data-stat-label">条联系方式</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Section 3: 参展轨迹 Timeline ===== -->
+<section class="section timeline-section" id="timeline">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">📍 智能追踪</div>
+      <h2 class="section-title">高效的参展轨迹</h2>
+      <p class="section-subtitle">挖掘新客户不再困难，了解老客户如此简单。追踪企业历年参展记录，精准定位商机。</p>
+    </div>
+
+    <div class="timeline-wrapper">
+      <div class="timeline-line"></div>
+
+      <!-- Node 1 -->
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-card">
+            <div class="timeline-year">2022</div>
+            <div class="timeline-event">宁波文具展</div>
+            <div class="timeline-booth">🏢 展位 N3548</div>
+            <div class="timeline-contact">👤 联系人：张先生</div>
+          </div>
+        </div>
+        <div style="flex:1;"></div>
+      </div>
+
+      <!-- Node 2 -->
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div style="flex:1;"></div>
+        <div class="timeline-content">
+          <div class="timeline-card">
+            <div class="timeline-year">2023 · 上半年</div>
+            <div class="timeline-event">深圳电商展</div>
+            <div class="timeline-booth">🏢 展位 A33</div>
+            <div class="timeline-contact">👤 联系人：张静</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Node 3 -->
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-card">
+            <div class="timeline-year">2023 · 下半年</div>
+            <div class="timeline-event">香港玩具展</div>
+            <div class="timeline-booth">🏢 展位 T9581</div>
+            <div class="timeline-contact">👤 联系人：张先生</div>
+          </div>
+        </div>
+        <div style="flex:1;"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Section 4: 多维数据版 Tabs ===== -->
+<section class="section tabs-section" id="tabs">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">📊 多维呈现</div>
+      <h2 class="section-title">多样化的风格展现</h2>
+      <p class="section-subtitle">四种风格，满足您不同场景下的数据查阅需求</p>
+    </div>
+
+    <div class="tabs-container">
+      <div class="tab-nav">
+        <button class="tab-btn active" data-tab="doc">📄 文档版</button>
+        <button class="tab-btn" data-tab="verify">✅ 核验版</button>
+        <button class="tab-btn" data-tab="data">📊 数据版</button>
+        <button class="tab-btn" data-tab="interact">🔄 交互版</button>
+      </div>
+
+      <div class="tab-panels">
+        <!-- 文档版 -->
+        <div class="tab-panel active" id="tab-doc">
+          <div class="tab-panel-header">
+            <div class="tab-panel-icon blue">📄</div>
+            <div>
+              <h3>文档版</h3>
+              <div style="font-size:13px;color:var(--color-text-muted);">原汁原味 · 官方发布</div>
+            </div>
+          </div>
+          <p class="tab-panel-desc">原版呈现官方发布的会刊内容，保留最原始的排版和设计，让您获取第一手资料。</p>
+          <div class="tab-panel-preview">
+            <div style="text-align:center;color:var(--color-text-muted);">
+              <div style="font-size:48px;margin-bottom:12px;">📋</div>
+              <p>官方会刊原版 PDF 预览区域</p>
+              <p style="font-size:13px;margin-top:8px;">完整保留设计排版 · 高清可缩放</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 核验版 -->
+        <div class="tab-panel" id="tab-verify">
+          <div class="tab-panel-header">
+            <div class="tab-panel-icon green">✅</div>
+            <div>
+              <h3>核验版</h3>
+              <div style="font-size:13px;color:var(--color-text-muted);">更加具体 · 精准匹配</div>
+            </div>
+          </div>
+          <p class="tab-panel-desc">更加具体，只为更快找到你要找的那个"他"。支持企业名称、联系人、展位号等多维度精准核验。</p>
+          <div class="tab-panel-preview">
+            <table class="preview-table">
+              <thead>
+                <tr>
+                  <th>企业名称</th>
+                  <th>联系电话</th>
+                  <th>官网</th>
+                  <th>展位号</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>青岛海信智慧生活科技股份有限公司</td>
+                  <td>0532-8XXX-XXXX</td>
+                  <td>www.hisense.com</td>
+                  <td>A1208</td>
+                </tr>
+                <tr>
+                  <td>上海跃扬医疗科技有限公司</td>
+                  <td>021-6XXX-XXXX</td>
+                  <td>www.yueyang-med.cn</td>
+                  <td>B3309</td>
+                </tr>
+                <tr>
+                  <td>深圳市创新达电子有限公司</td>
+                  <td>0755-2XXX-XXXX</td>
+                  <td>www.cxd-tech.com</td>
+                  <td>C0712</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 数据版 -->
+        <div class="tab-panel" id="tab-data">
+          <div class="tab-panel-header">
+            <div class="tab-panel-icon orange">📊</div>
+            <div>
+              <h3>数据版</h3>
+              <div style="font-size:13px;color:var(--color-text-muted);">高效融合 · 深度支撑</div>
+            </div>
+          </div>
+          <p class="tab-panel-desc">大数据深度支撑，获取更多的销售线索。整合企业工商信息、参展历史、联系方式，一页看尽所有关键数据。</p>
+          <div class="tab-panel-preview">
+            <div style="text-align:center;color:var(--color-text-muted);">
+              <div style="font-size:48px;margin-bottom:12px;">📊</div>
+              <p>大数据分析面板</p>
+              <p style="font-size:13px;margin-top:8px;">工商信息 · 参展频次 · 行业分布 · 关联推荐</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 交互版 -->
+        <div class="tab-panel" id="tab-interact">
+          <div class="tab-panel-header">
+            <div class="tab-panel-icon purple">🔄</div>
+            <div>
+              <h3>交互版</h3>
+              <div style="font-size:13px;color:var(--color-text-muted);">文数交互 · 边看边标</div>
+            </div>
+          </div>
+          <p class="tab-panel-desc">"萝卜青菜我都要"—— 文档数据一一对应，边看边标注不再难。左侧原版文档，右侧结构化数据，完美融合。</p>
+          <div class="tab-panel-preview">
+            <div style="display:flex;gap:24px;width:100%;">
+              <div style="flex:1;background:white;border-radius:8px;padding:16px;text-align:center;">
+                <div style="font-size:13px;font-weight:600;color:var(--color-primary);margin-bottom:8px;">📋 文档视图</div>
+                <div style="height:120px;background:var(--color-primary-light);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--color-primary);font-size:13px;">原版会刊内容</div>
+              </div>
+              <div style="display:flex;align-items:center;font-size:24px;color:var(--color-primary);">⟷</div>
+              <div style="flex:1;background:white;border-radius:8px;padding:16px;text-align:center;">
+                <div style="font-size:13px;font-weight:600;color:var(--color-accent);margin-bottom:8px;">📊 数据视图</div>
+                <div style="height:120px;background:#FFF3E0;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--color-accent);font-size:13px;">结构化数据</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Section 5: 核心功能矩阵 ===== -->
+<section class="section features-section" id="features">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">⚡ 核心能力</div>
+      <h2 class="section-title">核心功能矩阵</h2>
+      <p class="section-subtitle">全方位赋能销售团队，从客户管理到智能外呼一站搞定</p>
+    </div>
+
+    <div class="features-grid">
+      <!-- 功能 1 -->
+      <div class="feature-card">
+        <div class="feature-icon blue">📋</div>
+        <h3>一体化客户过程管控</h3>
+        <p>与客户打交道的所有信息一体化集中管控——沟通记录、订单信息、发票状态、客户偏好，全在一个平台。</p>
+      </div>
+
+      <!-- 功能 2 -->
+      <div class="feature-card">
+        <div class="feature-icon orange">👀</div>
+        <h3>一目了然的客户近态</h3>
+        <p>哪怕第一天接手客户，也会快速了解客户的所有情况。完整的客户档案让交接零障碍。</p>
+        <div class="feature-detail">
+          💬 "张宪伟于 2023-02-06 与吴佩佩老师进行了电话沟通，吴佩佩老师对项目比较感兴趣，计划安排线下拜访..."
+        </div>
+      </div>
+
+      <!-- 功能 3 -->
+      <div class="feature-card">
+        <div class="feature-icon green">👥</div>
+        <h3>更简单的团队协作</h3>
+        <p>同一客户多人实时协作，打破常规独立工作模式。销售、客服、运营共享客户信息，团队作战更高效。</p>
+      </div>
+
+      <!-- 功能 4 -->
+      <div class="feature-card">
+        <div class="feature-icon purple">📞</div>
+        <h3>灵活的云端呼叫</h3>
+        <p>有效降低封号风险，将主叫行为变幻为被叫行为。集成云端通讯技术，安全合规地联系每一位客户。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Section 6: 云端呼叫系统 ===== -->
+<section class="section cloud-call" id="cloud-call">
+  <div class="container">
+    <div>
+      <div class="section-tag">📞 智能外呼</div>
+      <h2 class="section-title">更灵活的<br>云端呼叫</h2>
+      <p class="section-subtitle" style="margin-bottom:40px;">告别传统电销困扰，用技术守护您的每一通电话</p>
+      <ul class="call-features">
+        <li>
+          <div class="call-check">✓</div>
+          <div>
+            <div class="call-feature-title">一键轻松联系客户</div>
+            <div class="call-feature-desc">效率提升 8 倍，点击即拨，无需手动输入号码</div>
+          </div>
+        </li>
+        <li>
+          <div class="call-check">✓</div>
+          <div>
+            <div class="call-feature-title">有效降低封号风险</div>
+            <div class="call-feature-desc">云端呼叫技术，将主叫变为被叫，合规外呼</div>
+          </div>
+        </li>
+        <li>
+          <div class="call-check">✓</div>
+          <div>
+            <div class="call-feature-title">想什么时候用就什么时候用</div>
+            <div class="call-feature-desc">随用随开，无需额外硬件，按需付费</div>
+          </div>
+        </li>
+      </ul>
+      <a href="#" class="btn btn-accent btn-lg" style="margin-top:32px;">免费试用云端呼叫 →</a>
+    </div>
+
+    <div class="call-visual">
+      <div class="call-flow">
+        <div class="call-flow-title">防封号原理：主叫变被叫</div>
+        <div class="call-flow-steps">
+          <div class="call-flow-step">
+            <div class="call-flow-icon user-icon">👤</div>
+            <div class="call-flow-label">销售人员</div>
+            <div class="call-flow-sublabel">点击拨号</div>
+          </div>
+          <div class="call-flow-arrow">
+            <div class="call-flow-arrow-label">发起请求</div>
+            →
+          </div>
+          <div class="call-flow-step">
+            <div class="call-flow-icon cloud-icon">☁️</div>
+            <div class="call-flow-label">云端服务器</div>
+            <div class="call-flow-sublabel">中转双向呼叫</div>
+          </div>
+          <div class="call-flow-arrow">
+            <div class="call-flow-arrow-label">回拨双方</div>
+            →
+          </div>
+          <div class="call-flow-step">
+            <div class="call-flow-icon phone-icon">📱</div>
+            <div class="call-flow-label">客户电话</div>
+            <div class="call-flow-sublabel">接听来电</div>
+          </div>
+        </div>
+        <div style="text-align:center;margin-top:20px;padding-top:16px;border-top:1px dashed var(--color-border);">
+          <div style="font-size:12px;color:var(--color-text-muted);">
+            ✅ 双方均为<strong style="color:var(--color-primary);">被叫</strong>状态 → 有效规避高频外呼检测
+          </div>
+        </div>
+      </div>
+      <div class="call-badge">效率 ×8</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===== Footer ===== -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="logo" style="margin-bottom:8px;">
+          <div class="logo-icon" style="width:32px;height:32px;font-size:14px;border-radius:8px;">华</div>
+          华展云
+        </div>
+        <p>华展云是专业的外贸展会大数据平台，致力于为展会参展企业提供一站式的客户获取、管理和转化解决方案。</p>
+      </div>
+      <div>
+        <div class="footer-title">产品</div>
+        <ul class="footer-links">
+          <li><a href="#">会刊检索</a></li>
+          <li><a href="#">参展轨迹</a></li>
+          <li><a href="#">客户管理</a></li>
+          <li><a href="#">云端呼叫</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-title">解决方案</div>
+        <ul class="footer-links">
+          <li><a href="#">外贸获客</a></li>
+          <li><a href="#">团队协作</a></li>
+          <li><a href="#">数据分析</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class="footer-title">支持</div>
+        <ul class="footer-links">
+          <li><a href="#">帮助中心</a></li>
+          <li><a href="#">联系我们</a></li>
+          <li><a href="#">下载客户端</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© Copyright 2017-2026 河南万鲸 版权所有</span>
+      <div class="footer-contact">
+        <span>📞 010-86461797</span>
+        <span>📧 service@wanjingchina.cn</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ===== JavaScript ===== -->
+<script>
+  // Header scroll effect
+  window.addEventListener('scroll', () => {
+    document.getElementById('header').classList.toggle('scrolled', window.scrollY > 10);
+  });
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // Intersection Observer for animations
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.opacity = '1';
+        entry.target.style.transform = 'translateY(0)';
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.feature-card, .data-stat-card, .timeline-card').forEach(el => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(20px)';
+    el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+    observer.observe(el);
+  });
+</script>
+
+</body>
+</html>
