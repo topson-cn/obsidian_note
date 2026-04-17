@@ -1,10 +1,10 @@
 {
   "id": "conv-1776339193893-zdbab9g4x",
-  "title": "Analyze API documentation and save business mod...",
-  "titleGenerationStatus": "success",
+  "title": "帮我添加一个git ignore文件，忽略workspace_v2",
+  "titleGenerationStatus": "failed",
   "createdAt": 1776339193893,
-  "updatedAt": 1776340652115,
-  "lastResponseAt": 1776340652115,
+  "updatedAt": 1776397954759,
+  "lastResponseAt": 1776397832037,
   "sessionId": "7387f441-d0b6-40c6-b018-718d473e731c",
   "sdkSessionId": "7387f441-d0b6-40c6-b018-718d473e731c",
   "usage": {

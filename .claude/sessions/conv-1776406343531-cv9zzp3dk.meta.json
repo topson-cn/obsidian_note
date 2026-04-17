@@ -1,0 +1,19 @@
+{
+  "id": "conv-1776406343531-cv9zzp3dk",
+  "title": "分析还款引擎项目结构",
+  "titleGenerationStatus": "success",
+  "createdAt": 1776406343533,
+  "updatedAt": 1776406672774,
+  "lastResponseAt": 1776406672774,
+  "sessionId": "684614d0-c555-4df1-8fa6-1201bf661205",
+  "sdkSessionId": "684614d0-c555-4df1-8fa6-1201bf661205",
+  "usage": {
+    "model": "opus",
+    "inputTokens": 3,
+    "cacheCreationInputTokens": 68611,
+    "cacheReadInputTokens": 0,
+    "contextWindow": 200000,
+    "contextTokens": 68614,
+    "percentage": 34
+  }
+}

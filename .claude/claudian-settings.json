@@ -43,7 +43,7 @@
   "thinkingBudget": "low",
   "enableAutoTitleGeneration": true,
   "titleGenerationModel": "",
-  "show1MModel": false,
+  "show1MModel": true,
   "enableChrome": false,
   "enableBangBash": false,
   "excludedTags": [],
@@ -51,9 +51,12 @@
   "systemPrompt": "",
   "allowedExportPaths": [
     "~/Desktop",
+    "~/Documents/workspace_v2",
     "~/Downloads"
   ],
-  "persistentExternalContextPaths": ["~/Documents/workspace_v2"],
+  "persistentExternalContextPaths": [
+    "~/Documents/workspace_v2"
+  ],
   "environmentVariables": "",
   "envSnippets": [],
   "customContextLimits": {},

@@ -10,7 +10,8 @@
       "ignoreList": [
         ".git",
         "node_modules",
-        ".obsidian"
+        ".obsidian",
+        "workspace_v2"
       ]
     }
   ],
