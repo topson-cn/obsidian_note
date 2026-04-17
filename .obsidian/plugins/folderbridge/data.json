@@ -1,0 +1,36 @@
+{
+  "mountPoints": [
+    {
+      "virtualPath": "workspace_v2",
+      "realPath": "/Users/wangtaotao/Documents/workspace_v2",
+      "enabled": true,
+      "readOnly": false,
+      "id": "1ohm04jmo290ozy",
+      "deviceId": "3wjztdmmo28xa86",
+      "ignoreList": [
+        ".git",
+        "node_modules",
+        ".obsidian",
+        "workspace_v2"
+      ]
+    }
+  ],
+  "allowlist": [
+    "/Users/wangtaotao/Documents/workspace_v2"
+  ],
+  "managedTocSource": "",
+  "tocSources": [],
+  "dryRun": false,
+  "showStatusBar": true,
+  "mountRootDeletionBehavior": "ask",
+  "deviceId": "3wjztdmmo28xa86",
+  "allowForeignMounts": false,
+  "maxDataUriMB": 10,
+  "globalIgnorePatterns": [
+    ".DS_Store",
+    "Thumbs.db",
+    "desktop.ini",
+    ".git"
+  ],
+  "hasSeenOnboarding": true
+}
