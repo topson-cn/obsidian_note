@@ -4,14 +4,13 @@
       "virtualPath": "workspace_v2",
       "realPath": "/Users/wangtaotao/Documents/workspace_v2",
       "enabled": true,
-      "readOnly": false,
-      "id": "1ohm04jmo290ozy",
+      "readOnly": true,
+      "id": "h2jy66bmo2d4d1y",
       "deviceId": "3wjztdmmo28xa86",
       "ignoreList": [
         ".git",
         "node_modules",
-        ".obsidian",
-        "workspace_v2"
+        ".obsidian"
       ]
     }
   ],
